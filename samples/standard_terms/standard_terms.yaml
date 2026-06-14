@@ -1,0 +1,31 @@
+# Layer 3 - Standard contract terms library (pre-loaded boilerplate).
+# Schema: id, text, type, priority, contract_type (optional scope).
+- id: st-001
+  text: "Governing law and jurisdiction clause specifying the controlling state law."
+  type: governing_law
+  priority: High
+  contract_type: services
+
+- id: st-002
+  text: "Limitation of liability clause bounding each party's aggregate liability."
+  type: liability
+  priority: Critical
+  contract_type: services
+
+- id: st-003
+  text: "Mutual confidentiality clause protecting each party's confidential information."
+  type: confidentiality
+  priority: High
+  contract_type: services
+
+- id: st-004
+  text: "Indemnification clause allocating third-party claim responsibility."
+  type: indemnity
+  priority: Critical
+  contract_type: services
+
+- id: st-005
+  text: "Data protection and data deletion obligations on termination."
+  type: data
+  priority: High
+  contract_type: services

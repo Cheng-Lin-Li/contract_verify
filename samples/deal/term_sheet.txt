@@ -1,0 +1,8 @@
+ACME Corp - Vendor Services Term Sheet (signed)
+
+Payment terms shall be net-30 days from the invoice date.
+Aggregate liability must be capped at the total fees paid under this agreement.
+The vendor shall delete all customer data within 30 days of termination.
+SLA uptime must be at least 99.9% measured monthly, with service credits for breach.
+Confidentiality obligations shall be mutual and survive termination of the agreement.
+The agreement shall be governing law of the State of California.

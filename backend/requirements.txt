@@ -1,0 +1,41 @@
+# === contract_verify backend dependencies (v0.9.0) ===========================
+# The 2-day MVP runs on the CLI with a small, mostly-stdlib footprint. Items
+# marked (3-month) and (optional) are not required to run the offline demo or
+# the test suite, which work with LLM_PROVIDER=fake.
+
+# --- Core (required) ---------------------------------------------------------
+click>=8.1                 # CLI function-test harness
+Jinja2>=3.1                # HTML report templating
+python-dotenv>=1.0         # .env configuration loading
+PyYAML>=6.0                # playbook / standard-terms libraries
+
+# --- Document ingestion ------------------------------------------------------
+pdfminer.six>=20221105     # PDF text + coordinates
+python-docx>=1.1           # DOCX paragraphs, tables, tracked changes
+extract-msg>=0.45          # Outlook .msg emails (EML uses the stdlib)
+
+# --- LLM / HTTP --------------------------------------------------------------
+requests>=2.31             # Ollama / HTTP provider calls
+
+# --- Structured logging ------------------------------------------------------
+structlog>=24.1            # JSON logs (stdlib fallback if absent)
+
+# --- Validation (API boundary; 3-month service) ------------------------------
+pydantic>=2.6              # typed reference-item schemas
+pydantic-settings>=2.2     # settings model for the FastAPI service
+
+# --- Object storage (optional; needed only when BLOB_DIR is an s3:// URL) -----
+# boto3 talks to MinIO (on-prem) or AWS S3 (cloud) for hybrid/cloud blob storage.
+boto3>=1.34
+
+# --- OCR (optional; engine swappable via OCR_ENGINE) -------------------------
+pytesseract>=0.3.10        # Tesseract binding (needs the tesseract binary)
+Pillow>=10.0               # image handling for OCR
+# paddleocr>=2.7           # (3-month) tables & images
+# paddlepaddle>=2.6        # (3-month) PaddleOCR runtime
+
+# --- Cloud LLM (optional; opt-in via LLM_PROVIDER=anthropic) ------------------
+# anthropic>=0.39
+
+# --- Tests -------------------------------------------------------------------
+pytest>=8.0                # `run_tests.py` also runs the suite without pytest
