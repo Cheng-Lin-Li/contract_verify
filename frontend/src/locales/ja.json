@@ -1,0 +1,31 @@
+{
+  "app": { "title": "contract_verify", "tagline": "3層コントラクト検証" },
+  "nav": { "upload": "アップロード", "report": "レポート", "queue": "弁護士キュー", "logout": "ログアウト" },
+  "login": { "title": "サインイン", "username": "ユーザー名", "password": "パスワード", "submit": "サインイン", "error": "認証情報が無効です" },
+  "upload": {
+    "title": "契約書を検証",
+    "contract": "契約書 (PDF / DOCX)",
+    "sources": "取引ソース（メール、タームシート、添付ファイル）",
+    "contractType": "契約タイプ",
+    "submit": "検証を実行",
+    "running": "検証中…",
+    "dropHint": "ファイルをここにドラッグするかクリックして選択"
+  },
+  "report": {
+    "title": "検証レポート",
+    "coverage": "カバレッジ", "risk": "リスク", "compliance": "プレイブック準拠",
+    "completeness": "標準条項", "confidence": "信頼度",
+    "autoConfirm": "自動確認", "blocked": "弁護士へ転送",
+    "entities": "契約エンティティ", "governingLaw": "準拠法",
+    "col": { "item": "項目", "layer": "層", "status": "ステータス", "confidence": "信頼度", "requirement": "参照", "clause": "一致条項", "notes": "備考" },
+    "layer": { "1": "要件", "2": "プレイブック", "3": "標準条項" },
+    "blockingReasons": "ブロック理由"
+  },
+  "queue": {
+    "title": "弁護士キュー", "empty": "レビュー待ちの項目はありません。",
+    "reason": "理由", "sla": "SLA", "risk": "リスク",
+    "actions": { "approve": "承認", "reject": "却下", "escalate": "エスカレーション", "addToPlaybook": "プレイブックに追加" }
+  },
+  "status": { "Covered": "カバー済", "Partial": "部分的", "Missing": "欠落", "Contradicted": "矛盾", "Superseded": "上書き", "Compliant": "準拠", "Deviation": "逸脱", "Violation": "違反", "Present": "あり", "Non-standard": "非標準" },
+  "common": { "loading": "読み込み中…", "error": "問題が発生しました", "yes": "はい", "no": "いいえ" }
+}
