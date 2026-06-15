@@ -30,6 +30,26 @@ def test_cli_extract_lists_requirements():
     assert "item_id" in res.output
 
 
+def test_cli_pipeline_out_only_also_writes_json():
+    """Passing only --out should still produce the JSON report alongside it."""
+    with tempfile.TemporaryDirectory() as tmp:
+        out_html = Path(tmp) / "report.html"
+        res = CliRunner().invoke(cli, [
+            "pipeline",
+            "--contract", str(CONTRACT),
+            "--sources", str(DEAL_DIR),
+            "--playbook", str(PLAYBOOK_DIR),
+            "--stdterms", str(STDTERMS_DIR),
+            "--contract-type", "services",
+            "--out", str(out_html),
+        ])
+        assert res.exit_code == 0, res.output
+        sibling_json = out_html.with_suffix(".json")
+        assert out_html.exists() and sibling_json.exists()
+        data = json.loads(sibling_json.read_text())
+        assert data["coverage_score"] > 0.0
+
+
 def test_cli_pipeline_writes_reports():
     with tempfile.TemporaryDirectory() as tmp:
         out_html = Path(tmp) / "report.html"

@@ -118,8 +118,10 @@ def extract(file_path: str) -> None:
 @click.option("--playbook", "playbook_dir", required=True, type=click.Path(exists=True))
 @click.option("--stdterms", "stdterms_dir", required=True, type=click.Path(exists=True))
 @click.option("--contract-type", default=None)
-@click.option("--out", "out_path", default=None, help="Write HTML report to this path.")
-@click.option("--json-out", "json_path", default=None, help="Write JSON report to this path.")
+@click.option("--out", "out_path", default=None,
+              help="Write the HTML report to this path. The JSON report is written alongside it "
+                   "(same name, .json) unless --json-out is given.")
+@click.option("--json-out", "json_path", default=None, help="Write the JSON report to this path.")
 def pipeline(
     contract_path: str,
     sources_dir: str,
@@ -129,7 +131,12 @@ def pipeline(
     out_path: str | None,
     json_path: str | None,
 ) -> None:
-    """Run the full three-layer verification pipeline and emit the report."""
+    """Run the full three-layer verification pipeline and emit the report.
+
+    The JSON report (the canonical machine-readable output) is always written:
+    with no flags it goes to ``report.html`` + ``report.json`` in the current
+    directory; with ``--out`` only, the JSON is written next to the HTML.
+    """
     sources = [str(p) for p in sorted(Path(sources_dir).glob("*")) if p.is_file()]
     result = VerificationPipeline().run(
         contract_path=contract_path,
@@ -147,14 +154,22 @@ def pipeline(
         click.echo("Blocking reasons:")
         for reason in report.blocking_reasons:
             click.echo(f"  - {reason}")
+
+    # Resolve output paths so the JSON report is always produced.
+    #   neither flag       -> report.html + report.json (cwd)
+    #   only --out         -> that HTML + a sibling .json
+    #   only --json-out    -> just that JSON
+    if not out_path and not json_path:
+        out_path, json_path = "report.html", "report.json"
+    elif out_path and not json_path:
+        json_path = str(Path(out_path).with_suffix(".json"))
+
     if out_path:
         Path(out_path).write_text(render_html(report), encoding="utf-8")
         click.echo(f"HTML report -> {out_path}")
     if json_path:
         Path(json_path).write_text(report.to_json(), encoding="utf-8")
         click.echo(f"JSON report -> {json_path}")
-    if not out_path and not json_path:
-        click.echo(report.to_json())
 
 
 @cli.command()

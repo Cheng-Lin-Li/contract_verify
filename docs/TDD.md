@@ -43,7 +43,7 @@ There are two hard deadlines: a 2-day MVP that proves the three-layer thesis end
 | Capability | 2-Day MVP | 3-Month Project | Backlog (Phase 1+) |
 |---|---|---|---|
 | Three-layer verification | All three (core) | Hardened | — |
-| Interface | CLI only | + minimal React (upload, report, queue) | Playbook builder UI, polish |
+| Interface | CLI only | **React SPA built** (upload, report, queue) + API skeleton/specs | Playbook builder UI, polish |
 | Ingestion | PDF/DOCX/email text-layer | + robust parsing, tables, tracked changes | — |
 | OCR | Optional (Tesseract, text-layer) | Tesseract + PaddleOCR/PP-Structure (tables & images) | PaddleOCR-VL (0.9B VLM), EasyOCR, cloud Vision |
 | LLM | Ollama or cloud via `.env` | Full provider adapter | OpenAI, Azure OpenAI |
@@ -57,9 +57,11 @@ There are two hard deadlines: a 2-day MVP that proves the three-layer thesis end
 | Access control | Single-user (none) | RBAC + manual privilege tagging | Auto-detect privilege |
 | Audit trail | Append-only JSONL / SQLite | Immutable Postgres trigger | — |
 | Deployment | On-prem/cloud/hybrid config + residency guardrail (CLI `doctor`) | Per-model Compose profiles + install guides | Managed cloud offering, customer-VPC blueprints |
-| Localization | English (JA-ready stack; JA = demo stretch) | English + Japanese (UI + JA OCR + JA prompts) | Further languages + full UI-switch breadth |
+| Localization | English (JA-ready stack; JA = demo stretch) | **EN + JA built in the frontend** (i18next); JA OCR + JA prompts pending | Further languages + full UI-switch breadth |
 
 **2-Day MVP — minimal stack.** Python 3.11 single process · Click CLI · Ollama local LLM (or cloud via `.env`) · SQLite for state + append-only audit · local filesystem for blobs · pdfminer / python-docx / stdlib-email ingestion · direct-LLM matching over small documents (no vector cluster) · prompts in `prompts/en/PROMPTS.md` · structlog · `DEPLOYMENT_MODE` + per-component residency guardrail. Deliberately **not** in the 2-day MVP: FastAPI service, Celery/Redis, Qdrant, MinIO, React frontend, RBAC/auth, immutable DB triggers, OCR switching.
+
+> **Build status (this repo).** The 3-month **backend** is scaffolded as skeletons (every function defined with signature + docstring, raising `NotImplementedError`) under `app/api`, `app/core/security`, `app/models`, `app/knowledge`, `app/queue`, `app/services`, `app/storage/postgres` and the PaddleOCR engine, with 3-month deps in `backend/requirements-3month.txt`. **TDD specs** for these features live in `backend/tests/three_month/` (written first; skipped until implemented — `RUN_3MONTH=1 pytest`). The **frontend** (`frontend/`) is implemented: a React + TS + Tailwind SPA (upload, report, attorney queue) with EN/JA localization, against the API contract in `app/api/schemas.py`.
 
 **Scope guardrail.** Every deferred item sits behind an interface that exists in the MVP (storage adapter, OCR adapter, LLM provider adapter, retrieval interface), so the 3-month work is swap-in, not refactor. The same interfaces are what let storage and LLM be local or cloud per deployment model.
 
@@ -321,8 +323,8 @@ CREATE TRIGGER audit_no_update BEFORE UPDATE OR DELETE ON audit_events
 DEPLOYMENT_MODE=on_prem             # on_prem | cloud | hybrid
 LLM_PROVIDER=ollama                 # ollama | anthropic | openai | azure_openai
 LLM_BASE_URL=http://localhost:11434
-LLM_EXTRACTION_MODEL=qwen3:14b-instruct-q4_K_M
-LLM_VERIFY_MODEL=qwen3:14b-instruct-q4_K_M
+LLM_EXTRACTION_MODEL=qwen3:14b
+LLM_VERIFY_MODEL=qwen3:14b
 EMBEDDING_MODEL=bge-m3
 # Cloud / hybrid override:
 # LLM_PROVIDER=anthropic
@@ -546,7 +548,7 @@ AUDIT_LOG_PATH=./var/audit.jsonl              # local path; or s3://bucket/... (
 
 OCR_ENGINE=tesseract            # MVP:tesseract | 3-mo:paddleocr | backlog:paddleocr_vl,easyocr,google_vision
 LLM_PROVIDER=ollama             # ollama | anthropic | openai | azure_openai
-LLM_EXTRACTION_MODEL=qwen3:14b-instruct-q4_K_M
+LLM_EXTRACTION_MODEL=qwen3:14b
 EMBEDDING_MODEL=bge-m3
 
 CS_HUMAN_REVIEW_THRESHOLD=0.70

@@ -182,7 +182,10 @@ This is the full 0.9.0 product scope, delivered across the roadmap in §9. The 2
 - Gap routing: stakeholder action list + attorney queue for contradictions, playbook Violations, missing standard protections, and high-risk gaps with full context.
 - Privilege-aware access controls and a full immutable audit trail of every reference-to-clause link and model action.
 - CLI for function-level testing of each stage; self-hosted local-LLM default with cloud switch via `.env`.
+- **Web application** (3-month scope, now implemented): a React + TypeScript SPA for the business stakeholder and supervising attorney — upload a contract and its deal sources, view the unified verification report (scores, gate, contract entities, per-item citation table), and work the attorney queue — with **English + Japanese** localization. It runs against a FastAPI service over a shared schema contract.
 - **Deploys on-premises, in the cloud, or hybrid:** every component (LLM, OCR, database, blob storage, audit) can independently run on customer-controlled infrastructure or in a cloud tenant. In the on-premises configuration nothing leaves the host and the system is fully air-gap capable; in hybrid, sensitive data (documents, database, audit) stays on-premises while compute or public-facing applications run in the cloud. The choice is configuration (`DEPLOYMENT_MODE` plus per-component provider/store settings), not a code fork, and a built-in guardrail flags any placement that would move data off the host against the declared mode.
+
+> **Build status.** The 2-day MVP (CLI-driven three-layer verification) is complete and tested. Of the three-month scope, the **web frontend is implemented** (React/TS/Tailwind, EN/JA); the **backend API and supporting services** (FastAPI endpoints, RBAC, attorney-queue routing/SLA, Postgres, Qdrant, PaddleOCR) are scaffolded as skeletons with **test-driven acceptance specs written first**, ready to be filled in against those tests.
 
 ---
 
@@ -207,7 +210,7 @@ The thesis is proven in a **2-day MVP** and shipped as a production product **wi
 |---|---|---|
 | **MVP** | Days 1–2 | Three-layer verification core on the CLI: ingest PDF/DOCX/email, extract requirements, verify coverage + playbook + standard terms, cited coverage report, audit log; deployment-mode aware (on-prem/cloud/hybrid) configuration + residency guardrail |
 | **Month 1** | Weeks 1–4 | Productionize foundations: API service, Postgres + vector retrieval, switchable OCR (Tesseract + PaddleOCR for tables/images), storage/provider interfaces (local or cloud); migrate CLI core into services; containerized for on-prem, cloud, or hybrid bring-up |
-| **Month 2** | Weeks 5–8 | Verification depth + UI: reconciliation (supersession, contradiction), all five scores, grounded redline, minimal web UI (upload, report, queue); **English + Japanese localization** (UI switch, JA OCR, JA prompts) |
+| **Month 2** | Weeks 5–8 | Verification depth + UI: reconciliation (supersession, contradiction), all five scores, grounded redline, web UI **(built: upload, report, queue)**; **English + Japanese localization** (UI switch built; JA OCR, JA prompts pending) |
 | **Month 3** | Weeks 9–12 | Workflow, trust & hardening: attorney queue + routing + SLA, RBAC + privilege tagging, immutable audit, supporting risk layer, tests + demo, stabilization; per-deployment-model install guides |
 | **Post-launch** | Beyond 3 mo | Managed cloud offering + customer-VPC blueprints, additional languages beyond EN/JA, more OCR/LLM providers, async scale, post-signature obligation tracking, portfolio analytics, CLM/DocuSign, broader legal ops |
 

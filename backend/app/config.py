@@ -75,10 +75,10 @@ class Settings:
     llm_provider: str = field(default_factory=lambda: _env("LLM_PROVIDER", "ollama"))
     llm_base_url: str = field(default_factory=lambda: _env("LLM_BASE_URL", "http://localhost:11434"))
     llm_extraction_model: str = field(
-        default_factory=lambda: _env("LLM_EXTRACTION_MODEL", "qwen3:14b-instruct-q4_K_M")
+        default_factory=lambda: _env("LLM_EXTRACTION_MODEL", "qwen3:14b")
     )
     llm_verify_model: str = field(
-        default_factory=lambda: _env("LLM_VERIFY_MODEL", "qwen3:14b-instruct-q4_K_M")
+        default_factory=lambda: _env("LLM_VERIFY_MODEL", "qwen3:14b")
     )
     embedding_model: str = field(default_factory=lambda: _env("EMBEDDING_MODEL", "bge-m3"))
     anthropic_api_key: Optional[str] = field(default_factory=lambda: os.environ.get("ANTHROPIC_API_KEY"))
