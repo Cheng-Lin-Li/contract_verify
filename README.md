@@ -335,12 +335,71 @@ The tests cover the scoring formulas (coverage / confidence / risk / gate), inge
 
 ---
 
+## Run the full app (API server + frontend)
+
+The MVP CLI needs no server. To use the **web app**, start the API backend, seed the demo accounts, then start the frontend. Run all backend commands from the **repo root** in your activated venv.
+
+**1. Install the demo API deps** (lightweight — FastAPI + auth, and it pulls in the MVP core; no Postgres/Qdrant/PaddleOCR):
+
+```bash
+pip install -r backend/requirements-api.txt
+```
+
+**2. Configure** (if you haven't already): `cp .env.example .env` (cmd: `copy .env.example .env`), and set a real `SECRET_KEY` — generate one with `openssl rand -hex 32`. For the offline demo set `LLM_PROVIDER=fake`.
+
+**3. Seed the demo accounts** (creates `var/users.json` with bcrypt-hashed passwords):
+
+```bash
+PYTHONPATH=backend python backend/scripts/seed_demo.py
+```
+```bat
+set PYTHONPATH=backend
+python backend/scripts/seed_demo.py
+```
+
+This prints the demo logins:
+
+| Username | Password | Role | Can see the attorney queue? |
+|---|---|---|---|
+| `operator` | `operator123` | operator | no — upload + own reports |
+| `attorney` | `attorney123` | attorney | yes — queue + decisions |
+| `admin` | `admin123` | admin | yes |
+
+> These are **demo-only** credentials. Re-seed any time with `--reset` to wipe and recreate the store. Never use them in production — real deployments use the Postgres-backed user table.
+
+**4. Start the API server** (http://localhost:8000):
+
+```bash
+PYTHONPATH=backend python backend/scripts/run_api.py
+```
+```bat
+set PYTHONPATH=backend
+python backend/scripts/run_api.py
+```
+
+Equivalent raw command: `uvicorn app.api.app:create_app --factory --host 0.0.0.0 --port 8000` (run with `backend` on `PYTHONPATH`). Health check: open `http://localhost:8000/api/health`. Interactive API docs: `http://localhost:8000/docs`.
+
+**5. Start the frontend** (separate terminal):
+
+```bash
+cd frontend
+npm install
+npm run dev          # http://localhost:5173 — proxies /api to :8000
+```
+
+Open `http://localhost:5173`, log in with one of the demo accounts above, upload a contract plus its deal sources (use the files in `samples/`), and you'll get the verification report; log in as `attorney` to work the queue.
+
+> **What's wired for the demo:** login/JWT auth + RBAC, contract upload → synchronous verification → stored report, the report view, and the attorney queue. The pipeline runs in-process (fast on `LLM_PROVIDER=fake`). The heavier 3-month pieces (Postgres, Qdrant, Celery, PaddleOCR) remain skeletons behind their interfaces — see below.
+
+---
+
 ## Frontend & the 3-month scope
 
-The repo now also carries the **3-month scope** alongside the working MVP:
+The repo carries the **3-month scope** alongside the working MVP:
 
-- **Frontend (`frontend/`) — implemented.** A React + TypeScript + Tailwind SPA: upload a contract + deal sources, view the unified report (scores, gate, entities, per-item table), and work the attorney queue, with **English + Japanese** localization. See [`frontend/README.md`](frontend/README.md) — `npm install && npm run dev`. It talks to the API over the contract in `frontend/src/types.ts`.
-- **Backend API + services (`backend/app/api`, `core/security`, `models`, `knowledge`, `queue`, `services`, `storage/postgres`, OCR `paddle_engine`) — skeleton.** Every function is defined with its signature and docstring but raises `NotImplementedError`. 3-month dependencies are in [`backend/requirements-3month.txt`](backend/requirements-3month.txt).
+- **Frontend (`frontend/`) — implemented.** A React + TypeScript + Tailwind SPA: upload a contract + deal sources, view the unified report (scores, gate, entities, per-item table), and work the attorney queue, with **English + Japanese** localization. See [`frontend/README.md`](frontend/README.md).
+- **Demo API server (`backend/app/api`, `core/security`, `auth_store`, `state_store`) — implemented.** A runnable FastAPI backend with JWT auth + RBAC and the upload → verify → report → queue flow (see [Run the full app](#run-the-full-app-api-server--frontend)).
+- **Heavier services (`models/orm`, `knowledge/qdrant_store`, `queue/*`, `services/jobs`, `storage/postgres`, OCR `paddle_engine`) — skeleton.** Defined with signatures + docstrings, raising `NotImplementedError`, behind stable interfaces. 3-month deps are in [`backend/requirements-3month.txt`](backend/requirements-3month.txt).
 - **TDD specs first (`backend/tests/three_month/`).** Unit-test specifications for the 3-month features (auth/RBAC, SLA, queue routing, Qdrant retrieval, Postgres store, the API endpoints) were written before implementation. They are **skipped by default** (so the MVP suite stays green) and run while implementing with:
 
   ```bash

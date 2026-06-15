@@ -80,7 +80,9 @@ class ReportRowOut(BaseModel):
     confidence: float
     requirement_text: str
     source_citation: Optional[dict] = None
+    source_label: Optional[str] = None
     matched_clause_ids: list[str] = []
+    superseded_by: Optional[str] = None
     notes: str = ""
 
 

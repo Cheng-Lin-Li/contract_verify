@@ -31,7 +31,9 @@ class ReportRow:
     confidence: float
     requirement_text: str
     source_citation: Optional[dict[str, Any]]
+    source_label: Optional[str]
     matched_clause_ids: list[str]
+    superseded_by: Optional[str]
     notes: str
 
 
@@ -60,6 +62,27 @@ class VerificationReport:
         return json.dumps(self.to_dict(), indent=indent, default=str)
 
 
+def _source_label(citation: Optional[dict[str, Any]],
+                  doc_names: Optional[dict[str, str]]) -> Optional[str]:
+    """Render a human-readable provenance label for a requirement.
+
+    Turns a raw ``source_citation`` ({doc_id, block_id, page, line}) into
+    ``"followup.eml · b-001 · p1"`` by resolving ``doc_id`` to its filename via
+    ``doc_names``. Falls back to a short doc id when the name is unknown, and
+    returns ``None`` for items with no source (Layer 2/3).
+    """
+    if not citation:
+        return None
+    doc_id = citation.get("doc_id", "")
+    name = (doc_names or {}).get(doc_id) or (doc_id[:8] if doc_id else "?")
+    parts = [name]
+    if citation.get("block_id"):
+        parts.append(str(citation["block_id"]))
+    if citation.get("page"):
+        parts.append(f"p{citation['page']}")
+    return " · ".join(parts)
+
+
 def build_report(
     contract: CIRDocument,
     items: list[ReferenceItem],
@@ -69,6 +92,7 @@ def build_report(
     completeness: LayerSummary,
     risk: int,
     gate: GateDecision,
+    doc_names: Optional[dict[str, str]] = None,
 ) -> VerificationReport:
     """Assemble a :class:`VerificationReport` from the pipeline outputs.
 
@@ -81,11 +105,16 @@ def build_report(
         completeness: Layer-3 summary.
         risk: Aggregate risk score.
         gate: Combined gate decision.
+        doc_names: Optional ``doc_id -> filename`` map used to render readable
+            requirement provenance (the "Source" column). When omitted, source
+            labels fall back to a short doc id.
     """
     item_by_id = {it.item_id: it for it in items}
     rows: list[ReportRow] = []
     for res in results:
         item = item_by_id.get(res.item_id)
+        citation = item.source_ref.to_dict() if item and item.source_ref else None
+        evidence = res.evidence if isinstance(res.evidence, dict) else {}
         rows.append(
             ReportRow(
                 item_id=res.item_id,
@@ -95,8 +124,10 @@ def build_report(
                 status=res.status,
                 confidence=res.confidence,
                 requirement_text=item.text if item else "",
-                source_citation=(item.source_ref.to_dict() if item and item.source_ref else None),
+                source_citation=citation,
+                source_label=_source_label(citation, doc_names),
                 matched_clause_ids=res.matched_clause_ids,
+                superseded_by=evidence.get("superseded_by"),
                 notes=res.notes,
             )
         )
@@ -141,19 +172,26 @@ def _status_class(status: str) -> str:
 
 def _render_html_fallback(report: VerificationReport) -> str:
     """Build a minimal HTML report without Jinja2."""
+    def _clause_cell(row: ReportRow) -> str:
+        if row.superseded_by:
+            return f"<span class='superseded'>&rarr; superseded by {row.superseded_by}</span>"
+        return ", ".join(row.matched_clause_ids)
+
     rows = "".join(
         f"<tr class='{_status_class(row.status)}'><td>{row.item_id}</td><td>L{row.layer}</td>"
         f"<td>{row.type}</td><td>{row.priority}</td><td>{row.status}</td>"
         f"<td>{row.confidence:.2f}</td><td>{row.requirement_text}</td>"
-        f"<td>{', '.join(row.matched_clause_ids)}</td></tr>"
+        f"<td>{row.source_label or '—'}</td>"
+        f"<td>{_clause_cell(row)}</td></tr>"
         for row in report.rows
     )
     return (
-        f"<html><body><h1>Verification report — {report.contract_id}</h1>"
+        f"<html><head><style>.superseded{{color:#6b7280;font-style:italic}}</style></head>"
+        f"<body><h1>Verification report — {report.contract_id}</h1>"
         f"<p>Coverage {report.coverage_score} · Risk {report.risk_score} · "
         f"Auto-confirm: {report.auto_confirm}</p>"
         f"<table border='1'><tr><th>Item</th><th>Layer</th><th>Type</th><th>Priority</th>"
-        f"<th>Status</th><th>Conf.</th><th>Requirement</th><th>Clauses</th></tr>{rows}</table>"
+        f"<th>Status</th><th>Conf.</th><th>Requirement</th><th>Source</th><th>Clauses</th></tr>{rows}</table>"
         f"</body></html>"
     )
 
@@ -169,6 +207,7 @@ _HTML_TEMPLATE = """<!doctype html>
  th{background:#fafafa}
  .ok{background:#eafaf0}.warn{background:#fff8e6}.bad{background:#fdecec}
  .gate-open{color:#137a3f}.gate-closed{color:#b4231f}
+ .superseded{color:#6b7280;font-style:italic}
 </style></head><body>
 <h1>Verification report</h1>
 <p>Contract <code>{{ r.contract_id }}</code></p>
@@ -184,14 +223,16 @@ _HTML_TEMPLATE = """<!doctype html>
 {% if r.attorney_queue %}<p><strong>Attorney queue:</strong> {{ r.attorney_queue|join(', ') }}</p>{% endif %}
 <table>
  <tr><th>Item</th><th>Layer</th><th>Type</th><th>Priority</th><th>Status</th>
-     <th>Conf.</th><th>Requirement</th><th>Cited clauses</th><th>Notes</th></tr>
+     <th>Conf.</th><th>Requirement</th><th>Source</th><th>Cited clauses</th><th>Notes</th></tr>
  {% for row in r.rows %}
  <tr class="{{ {'Covered':'ok','Compliant':'ok','Present':'ok','Superseded':'ok',
                 'Partial':'warn','Deviation':'warn','Non-standard':'warn',
                 'Missing':'bad','Violation':'bad','Contradicted':'bad'}.get(row.status,'') }}">
    <td>{{ row.item_id }}</td><td>L{{ row.layer }}</td><td>{{ row.type }}</td>
    <td>{{ row.priority }}</td><td>{{ row.status }}</td><td>{{ '%.2f'|format(row.confidence) }}</td>
-   <td>{{ row.requirement_text }}</td><td>{{ row.matched_clause_ids|join(', ') }}</td>
+   <td>{{ row.requirement_text }}</td>
+   <td>{{ row.source_label or '—' }}</td>
+   <td>{% if row.superseded_by %}<span class="superseded">&rarr; superseded by {{ row.superseded_by }}</span>{% else %}{{ row.matched_clause_ids|join(', ') }}{% endif %}</td>
    <td>{{ row.notes }}</td></tr>
  {% endfor %}
 </table></body></html>"""

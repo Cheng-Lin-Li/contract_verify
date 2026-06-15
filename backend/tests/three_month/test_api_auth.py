@@ -12,7 +12,7 @@ from tests.three_month._spec import skip_until_implemented
 @skip_until_implemented
 def test_login_returns_token(api_client):
     resp = api_client.post("/api/auth/login",
-                           json={"username": "attorney", "password": "pw"})
+                           json={"username": "attorney", "password": "attorney123"})
     assert resp.status_code == 200
     body = resp.json()
     assert body["token_type"] == "bearer" and body["access_token"]
@@ -21,7 +21,7 @@ def test_login_returns_token(api_client):
 @skip_until_implemented
 def test_login_rejects_bad_credentials(api_client):
     resp = api_client.post("/api/auth/login",
-                           json={"username": "x", "password": "y"})
+                           json={"username": "attorney", "password": "wrong"})
     assert resp.status_code == 401
 
 

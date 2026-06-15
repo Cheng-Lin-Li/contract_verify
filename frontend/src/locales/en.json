@@ -1,7 +1,21 @@
 {
-  "app": { "title": "contract_verify", "tagline": "Three-layer contract verification" },
-  "nav": { "upload": "Upload", "report": "Report", "queue": "Attorney Queue", "logout": "Log out" },
-  "login": { "title": "Sign in", "username": "Username", "password": "Password", "submit": "Sign in", "error": "Invalid credentials" },
+  "app": {
+    "title": "contract_verify",
+    "tagline": "Three-layer contract verification"
+  },
+  "nav": {
+    "upload": "Upload",
+    "report": "Report",
+    "queue": "Attorney Queue",
+    "logout": "Log out"
+  },
+  "login": {
+    "title": "Sign in",
+    "username": "Username",
+    "password": "Password",
+    "submit": "Sign in",
+    "error": "Invalid credentials"
+  },
   "upload": {
     "title": "Verify a contract",
     "contract": "Contract (PDF / DOCX)",
@@ -13,19 +27,62 @@
   },
   "report": {
     "title": "Verification report",
-    "coverage": "Coverage", "risk": "Risk", "compliance": "Playbook compliance",
-    "completeness": "Standard terms", "confidence": "Confidence",
-    "autoConfirm": "Auto-confirm", "blocked": "Routed to attorney",
-    "entities": "Contract entities", "governingLaw": "Governing law",
-    "col": { "item": "Item", "layer": "Layer", "status": "Status", "confidence": "Confidence", "requirement": "Reference", "clause": "Matched clause", "notes": "Notes" },
-    "layer": { "1": "Requirements", "2": "Playbook", "3": "Standard terms" },
-    "blockingReasons": "Blocking reasons"
+    "coverage": "Coverage",
+    "risk": "Risk",
+    "compliance": "Playbook compliance",
+    "completeness": "Standard terms",
+    "confidence": "Confidence",
+    "autoConfirm": "Auto-confirm",
+    "blocked": "Routed to attorney",
+    "entities": "Contract entities",
+    "governingLaw": "Governing law",
+    "col": {
+      "item": "Item",
+      "layer": "Layer",
+      "status": "Status",
+      "confidence": "Confidence",
+      "requirement": "Reference",
+      "clause": "Matched clause",
+      "notes": "Notes",
+      "source": "Source"
+    },
+    "layer": {
+      "1": "Requirements",
+      "2": "Playbook",
+      "3": "Standard terms"
+    },
+    "blockingReasons": "Blocking reasons",
+    "supersededBy": "superseded by {{id}}"
   },
   "queue": {
-    "title": "Attorney queue", "empty": "No items awaiting review.",
-    "reason": "Reason", "sla": "SLA", "risk": "Risk",
-    "actions": { "approve": "Approve", "reject": "Reject", "escalate": "Escalate", "addToPlaybook": "Add to playbook" }
+    "title": "Attorney queue",
+    "empty": "No items awaiting review.",
+    "reason": "Reason",
+    "sla": "SLA",
+    "risk": "Risk",
+    "actions": {
+      "approve": "Approve",
+      "reject": "Reject",
+      "escalate": "Escalate",
+      "addToPlaybook": "Add to playbook"
+    }
   },
-  "status": { "Covered": "Covered", "Partial": "Partial", "Missing": "Missing", "Contradicted": "Contradicted", "Superseded": "Superseded", "Compliant": "Compliant", "Deviation": "Deviation", "Violation": "Violation", "Present": "Present", "Non-standard": "Non-standard" },
-  "common": { "loading": "Loading…", "error": "Something went wrong", "yes": "Yes", "no": "No" }
+  "status": {
+    "Covered": "Covered",
+    "Partial": "Partial",
+    "Missing": "Missing",
+    "Contradicted": "Contradicted",
+    "Superseded": "Superseded",
+    "Compliant": "Compliant",
+    "Deviation": "Deviation",
+    "Violation": "Violation",
+    "Present": "Present",
+    "Non-standard": "Non-standard"
+  },
+  "common": {
+    "loading": "Loading…",
+    "error": "Something went wrong",
+    "yes": "Yes",
+    "no": "No"
+  }
 }

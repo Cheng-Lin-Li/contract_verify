@@ -149,12 +149,15 @@ class VerificationPipeline:
         contract_blob = self._persist_blob(contract.doc_id, contract_path)
         self.audit.record("ingest", doc_id=contract.doc_id,
                           details={"role": "contract", "blob": contract_blob})
+        # doc_id -> original filename, used to render readable requirement provenance.
+        doc_names: dict[str, str] = {contract.doc_id: Path(contract_path).name}
         deal_docs = []
         for p in deal_source_paths:
             d = self.ingest.ingest_file(p, DocRole.DEAL_SOURCE)
             blob = self._persist_blob(d.doc_id, p)
             self.audit.record("ingest", doc_id=d.doc_id,
                               details={"role": "deal_source", "blob": blob})
+            doc_names[d.doc_id] = Path(p).name
             deal_docs.append(d)
 
         # Order deal sources by recency (undated first, then chronological by the
@@ -216,7 +219,7 @@ class VerificationPipeline:
                               details={"queue": "attorney"})
 
         report = build_report(contract, all_items, results, coverage,
-                              compliance, completeness, risk, gate)
+                              compliance, completeness, risk, gate, doc_names=doc_names)
         log.info("pipeline_complete", extra={"doc_id": contract.doc_id,
                                              "coverage": coverage.score, "risk": risk,
                                              "auto_confirm": gate.auto_confirm})

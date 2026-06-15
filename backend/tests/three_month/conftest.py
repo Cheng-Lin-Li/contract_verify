@@ -14,9 +14,21 @@ def settings():
 
 
 @pytest.fixture
-def api_client():
-    """A FastAPI TestClient over the real app (skips if fastapi absent)."""
+def api_client(tmp_path, monkeypatch):
+    """A FastAPI TestClient over the real app with seeded demo users.
+
+    Uses an isolated user store / reports dir so specs don't touch real data.
+    Skips if the 3-month API deps (fastapi) aren't installed.
+    """
     pytest.importorskip("fastapi")
+    monkeypatch.setenv("USERS_DB_PATH", str(tmp_path / "users.json"))
+    monkeypatch.setenv("REPORTS_DIR", str(tmp_path / "reports"))
+    monkeypatch.setenv("UPLOADS_DIR", str(tmp_path / "uploads"))
+    monkeypatch.setenv("SECRET_KEY", "test-secret")
+    from app.config import reset_settings_cache
+    reset_settings_cache()
+    from app.api.auth_store import seed_demo_users
+    seed_demo_users(reset=True)
     from fastapi.testclient import TestClient
     from app.api.app import create_app
     return TestClient(create_app())
@@ -24,9 +36,9 @@ def api_client():
 
 @pytest.fixture
 def auth_headers(api_client):
-    """Bearer headers for an attorney user (login flow)."""
+    """Bearer headers for the seeded attorney demo account."""
     resp = api_client.post("/api/auth/login",
-                           json={"username": "attorney", "password": "pw"})
+                           json={"username": "attorney", "password": "attorney123"})
     token = resp.json()["access_token"]
     return {"Authorization": f"Bearer {token}"}
 

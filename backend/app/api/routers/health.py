@@ -1,13 +1,21 @@
-"""Health router: liveness/readiness (3-month · SKELETON)."""
+"""Health router: liveness/readiness."""
+
 from __future__ import annotations
-from typing import Any
+
+from fastapi import APIRouter
+
+from app.config import get_settings
+
+router = APIRouter()
 
 
-def health() -> Any:
-    """GET /api/health -> {"status": "ok", "version": ...}. Liveness probe."""
-    raise NotImplementedError
+@router.get("/health")
+def health() -> dict:
+    """Liveness probe."""
+    return {"status": "ok", "version": get_settings().app_version}
 
 
-def ready() -> Any:
-    """GET /api/ready -> readiness: DB, vector store and LLM reachable."""
-    raise NotImplementedError
+@router.get("/ready")
+def ready() -> dict:
+    """Readiness probe (demo: always ready)."""
+    return {"status": "ready"}

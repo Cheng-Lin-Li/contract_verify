@@ -24,7 +24,9 @@ export interface ReportRow {
   confidence: number;
   requirement_text: string;
   source_citation?: Record<string, unknown> | null;
+  source_label?: string | null;
   matched_clause_ids: string[];
+  superseded_by?: string | null;
   notes: string;
 }
 

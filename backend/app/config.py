@@ -118,6 +118,30 @@ class Settings:
     # --- Prompts ---
     prompts_dir: str = field(default_factory=lambda: _env("PROMPTS_DIR", "backend/prompts"))
 
+    # --- API / auth (demo server) ---
+    # Secret used to sign JWTs. MUST be overridden in production via SECRET_KEY.
+    secret_key: str = field(default_factory=lambda: _env("SECRET_KEY", "dev-insecure-change-me"))
+    jwt_algorithm: str = field(default_factory=lambda: _env("JWT_ALGORITHM", "HS256"))
+    jwt_expire_minutes: int = field(default_factory=lambda: _env_int("JWT_EXPIRE_MINUTES", 480))
+    # Comma-separated list of allowed browser origins for the SPA (CORS).
+    cors_origins: str = field(
+        default_factory=lambda: _env("CORS_ORIGINS", "http://localhost:5173")
+    )
+    # Where the demo user store, generated reports, and uploads live.
+    users_db_path: str = field(default_factory=lambda: _env("USERS_DB_PATH", "./var/users.json"))
+    reports_dir: str = field(default_factory=lambda: _env("REPORTS_DIR", "./var/reports"))
+    uploads_dir: str = field(default_factory=lambda: _env("UPLOADS_DIR", "./var/uploads"))
+    # Layer-2 / Layer-3 libraries the API verifies uploads against (the SPA only
+    # uploads the contract + deal sources; these supply the playbook/standard terms).
+    demo_playbook_dir: str = field(default_factory=lambda: _env("DEMO_PLAYBOOK_DIR", "samples/playbook"))
+    demo_standard_terms_dir: str = field(
+        default_factory=lambda: _env("DEMO_STANDARD_TERMS_DIR", "samples/standard_terms")
+    )
+
+    def cors_origin_list(self) -> list[str]:
+        """Return ``CORS_ORIGINS`` parsed into a list."""
+        return [s.strip() for s in self.cors_origins.split(",") if s.strip()]
+
     # --- Logging ---
     log_level: str = field(default_factory=lambda: _env("LOG_LEVEL", "INFO"))
     log_file: str = field(default_factory=lambda: _env("LOG_FILE", ""))

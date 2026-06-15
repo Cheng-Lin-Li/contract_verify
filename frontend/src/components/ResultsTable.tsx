@@ -15,6 +15,7 @@ export default function ResultsTable({ rows }: { rows: ReportRow[] }) {
             <th className="px-3 py-2">{t("report.col.status")}</th>
             <th className="px-3 py-2">{t("report.col.confidence")}</th>
             <th className="px-3 py-2">{t("report.col.requirement")}</th>
+            <th className="px-3 py-2">{t("report.col.source")}</th>
             <th className="px-3 py-2">{t("report.col.clause")}</th>
             <th className="px-3 py-2">{t("report.col.notes")}</th>
           </tr>
@@ -27,7 +28,16 @@ export default function ResultsTable({ rows }: { rows: ReportRow[] }) {
               <td className="px-3 py-2"><StatusBadge status={r.status} /></td>
               <td className="px-3 py-2">{(r.confidence * 100).toFixed(0)}%</td>
               <td className="px-3 py-2 max-w-xs">{r.requirement_text}</td>
-              <td className="px-3 py-2 font-mono text-xs">{r.matched_clause_ids.join(", ") || "—"}</td>
+              <td className="px-3 py-2 font-mono text-xs text-slate-500">{r.source_label ?? "—"}</td>
+              <td className="px-3 py-2 font-mono text-xs">
+                {r.superseded_by ? (
+                  <span className="italic text-slate-500">
+                    → {t("report.supersededBy", { id: r.superseded_by })}
+                  </span>
+                ) : (
+                  r.matched_clause_ids.join(", ") || "—"
+                )}
+              </td>
               <td className="px-3 py-2 text-slate-500">{r.notes}</td>
             </tr>
           ))}

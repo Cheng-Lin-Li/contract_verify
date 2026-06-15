@@ -6,9 +6,10 @@ with **English + Japanese** localization. It talks to the FastAPI backend
 (`backend/app/api`) over the HTTP contract defined in `src/types.ts`
 (mirrors `backend/app/api/schemas.py`).
 
-> The backend API is currently a **skeleton** (handlers raise
-> `NotImplementedError`). The frontend is fully implemented against the contract;
-> point it at a running API once the 3-month endpoints are built.
+> The API backend provides a **runnable demo server** with JWT auth + RBAC and
+> the upload → verify → report → queue flow. Start it and seed the demo accounts
+> first (see the root README, "Run the full app"); then run the SPA below and log
+> in with `operator` / `attorney` / `admin` (passwords in the root README).
 
 ## Prerequisites
 

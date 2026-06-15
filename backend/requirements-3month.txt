@@ -5,6 +5,9 @@
 # Install alongside backend/requirements.txt when implementing the 3-month scope.
 
 # --- API service ---
+-r requirements.txt            # MVP core (pipeline) + demo API base
+-r requirements-api.txt        # FastAPI, auth, multipart, uvicorn
+
 fastapi>=0.111
 uvicorn[standard]>=0.30
 python-multipart>=0.0.9        # file uploads
