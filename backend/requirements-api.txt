@@ -11,4 +11,4 @@ fastapi>=0.111                 # API framework
 uvicorn[standard]>=0.30        # ASGI server (scripts/run_api.py)
 python-multipart>=0.0.9        # multipart parsing for contract/source uploads
 python-jose[cryptography]>=3.3 # JWT mint/verify
-passlib[bcrypt]>=1.7           # password hashing for the demo accounts
+bcrypt>=4.0                    # password hashing for the demo accounts

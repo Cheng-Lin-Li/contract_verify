@@ -58,6 +58,11 @@ class JobOut(BaseModel):
     status: JobStatus
     progress: float = Field(0.0, ge=0.0, le=1.0)
     error: Optional[str] = None
+    # Ingestion/extraction progress details (library upload jobs).
+    stage: Optional[str] = None        # "ingest" | "extract" | "done"
+    current_page: Optional[int] = None
+    total_pages: Optional[int] = None
+    stage_file: Optional[str] = None   # filename being processed
 
 
 class ScoreSummary(BaseModel):
@@ -154,6 +159,22 @@ class AuditEventOut(BaseModel):
     item_id: Optional[str] = None
     status: Optional[str] = None
     confidence: Optional[float] = None
+
+
+class ContractSummaryOut(BaseModel):
+    """Lightweight summary of one contract for the contracts-list view."""
+    contract_id: str
+    job_id: Optional[str] = None
+    status: str  # queued | running | completed | failed
+    coverage_score: Optional[float] = None
+    risk_score: Optional[int] = None
+    auto_confirm: Optional[bool] = None
+    blocking_count: int = 0
+    submitted_at: Optional[float] = None  # Unix timestamp from file mtime
+    contract_filename: Optional[str] = None
+    error: Optional[str] = None
+    stage: Optional[str] = None
+    progress: float = 0.0
 
 
 class DeploymentOut(BaseModel):

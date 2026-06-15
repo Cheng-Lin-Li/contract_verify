@@ -15,17 +15,33 @@ from app.logging_setup import get_logger
 log = get_logger("ingestion.pdf")
 
 
+def _count_pdf_pages(data: bytes) -> int:
+    """Fast page count using pdfminer without full text extraction."""
+    try:
+        import io
+        from pdfminer.pdfpage import PDFPage
+        return sum(1 for _ in PDFPage.get_pages(io.BytesIO(data), check_extractable=False))
+    except Exception:
+        return 0
+
+
 class PdfParser(DocumentParser):
     """Parse a text-layer PDF into paragraph blocks with bounding boxes."""
 
     extensions = ("pdf",)
     format = "pdf"
 
-    def parse(self, data: bytes, filename: str) -> tuple[list[CIRBlock], dict, int]:
+    def parse(
+        self,
+        data: bytes,
+        filename: str,
+        progress_callback=None,
+    ) -> tuple[list[CIRBlock], dict, int]:
         """Extract text containers from each page.
 
         Imports ``pdfminer`` lazily. Each text container becomes one block with
-        its page number and bounding box.
+        its page number and bounding box. If ``progress_callback`` is provided it
+        is called as ``(current_page, total_pages)`` after processing each page.
 
         Raises:
             RuntimeError: If ``pdfminer.six`` is not installed.
@@ -37,6 +53,8 @@ class PdfParser(DocumentParser):
             from pdfminer.layout import LTTextContainer
         except ImportError as exc:  # pragma: no cover
             raise RuntimeError("pdfminer.six is required to parse PDFs") from exc
+
+        total_pages = _count_pdf_pages(data) if progress_callback else 0
 
         blocks: list[CIRBlock] = []
         page_count = 0
@@ -60,5 +78,7 @@ class PdfParser(DocumentParser):
                         )
                     )
                     idx += 1
+            if progress_callback:
+                progress_callback(page_no, total_pages or page_no)
         log.info("pdf_parsed", extra={"filename": filename, "pages": page_count, "blocks": len(blocks)})
         return blocks, {"filename": filename}, max(page_count, 1)

@@ -50,6 +50,10 @@ class FakeProvider(LLMProvider):
         """
         if "[TASK:VERIFY]" in prompt:
             return json.dumps(self._verify(prompt))
+        if "[TASK:EXTRACT_PLAYBOOK]" in prompt:
+            return json.dumps(self._extract_playbook(prompt))
+        if "[TASK:EXTRACT_STANDARD_TERMS]" in prompt:
+            return json.dumps(self._extract_standard_terms(prompt))
         if "[TASK:EXTRACT]" in prompt:
             return json.dumps(self._extract(prompt))
         return "{}"
@@ -122,6 +126,46 @@ class FakeProvider(LLMProvider):
             "llm_confidence": conf,
             "notes": f"term overlap {hits}/{len(set(terms))}",
         }
+
+    def _extract_playbook(self, prompt: str) -> list[dict]:
+        """Return playbook positions derived from the source text."""
+        items: list[dict] = []
+        for line in self._candidate_lines(prompt):
+            low = line.lower()
+            if len(line) < 20:
+                continue
+            if not any(h in low for h in _REQUIREMENT_HINTS):
+                continue
+            if "must not" in low or "shall not" in low or "prohibited" in low:
+                rule = "must_not_have"
+            elif "should" in low or "prefer" in low or "recommended" in low:
+                rule = "preferred"
+            else:
+                rule = "must_have"
+            items.append({
+                "text": line[:300],
+                "type": self._guess_type(low),
+                "priority": "Critical" if ("liability" in low or "net-" in low) else "High",
+                "rule": rule,
+            })
+        return items[:25]
+
+    def _extract_standard_terms(self, prompt: str) -> list[dict]:
+        """Return standard-terms items derived from the source text."""
+        items: list[dict] = []
+        for line in self._candidate_lines(prompt):
+            low = line.lower()
+            if len(line) < 20:
+                continue
+            if not any(h in low for h in _REQUIREMENT_HINTS):
+                continue
+            items.append({
+                "text": line[:300],
+                "type": self._guess_type(low),
+                "priority": "Critical" if "liability" in low else "High",
+                "contract_type": "services",
+            })
+        return items[:25]
 
     @staticmethod
     def _guess_type(low: str) -> str:

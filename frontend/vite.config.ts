@@ -1,8 +1,10 @@
-/// <reference types="vitest" />
-import { defineConfig } from "vite";
+/// <reference types="vitest/config" />
+import { defineConfig } from "vitest/config";
 import react from "@vitejs/plugin-react";
 
 // Dev server proxies /api to the FastAPI backend so the SPA and API share an origin.
+// Test config (vitest) lives under `test`; defineConfig is imported from
+// "vitest/config" so the block is recognized by vitest 4.
 export default defineConfig({
   plugins: [react()],
   server: {

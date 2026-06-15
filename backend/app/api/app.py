@@ -10,7 +10,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import get_settings
-from app.api.routers import audit, auth, contracts, health, playbook, queue
+from app.api.routers import audit, auth, contracts, health, library, playbook, queue
 
 
 def create_app() -> FastAPI:
@@ -40,4 +40,5 @@ def register_routers(app: FastAPI) -> None:
     app.include_router(contracts.router, prefix="/api", tags=["contracts"])
     app.include_router(queue.router, prefix="/api/queue", tags=["queue"])
     app.include_router(playbook.router, prefix="/api/playbook", tags=["playbook"])
+    app.include_router(library.router, prefix="/api/library", tags=["library"])
     app.include_router(audit.router, prefix="/api/audit", tags=["audit"])

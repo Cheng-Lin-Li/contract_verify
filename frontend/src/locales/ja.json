@@ -4,10 +4,32 @@
     "tagline": "3層コントラクト検証"
   },
   "nav": {
-    "upload": "アップロード",
+    "contracts": "契約一覧",
+    "upload": "新規検証",
     "report": "レポート",
     "queue": "弁護士キュー",
+    "library": "ライブラリ",
     "logout": "ログアウト"
+  },
+  "contracts": {
+    "title": "契約一覧",
+    "newVerification": "新規検証",
+    "empty": "契約がありません。アップロードして開始してください。",
+    "viewReport": "レポートを表示",
+    "col": {
+      "contract": "契約書",
+      "status": "ステータス",
+      "coverage": "カバレッジ",
+      "autoConfirm": "自動確認",
+      "blocking": "ブロック",
+      "submitted": "送信日時"
+    },
+    "status": {
+      "queued": "待機中",
+      "running": "実行中",
+      "completed": "完了",
+      "failed": "失敗"
+    }
   },
   "login": {
     "title": "サインイン",
@@ -23,7 +45,18 @@
     "contractType": "契約タイプ",
     "submit": "検証を実行",
     "running": "検証中…",
-    "dropHint": "ファイルをここにドラッグするかクリックして選択"
+    "dropHint": "ファイルをここにドラッグするかクリックして選択",
+    "stage": {
+      "queued": "待機中…",
+      "ingest_contract": "契約書を取り込み中",
+      "ingest_sources": "取引ソースを取り込み中",
+      "extract": "要件を抽出中",
+      "reconcile": "照合中",
+      "match": "条項を検証中",
+      "score": "スコアリング中",
+      "report": "レポートを作成中",
+      "done": "完了"
+    }
   },
   "report": {
     "title": "検証レポート",
@@ -78,6 +111,47 @@
     "Violation": "違反",
     "Present": "あり",
     "Non-standard": "非標準"
+  },
+  "library": {
+    "title": "参照ライブラリ",
+    "playbookTitle": "社内プレイブック（レイヤー2）",
+    "playbookDesc": "承認済み条項、必須・禁止ルール、優先条件を含むPDFまたはDOCXファイルをアップロードしてください。",
+    "stdTermsTitle": "標準契約条項（レイヤー3）",
+    "stdTermsDesc": "準拠法、責任制限など、契約タイプに期待される市場標準条項を含むPDFまたはDOCXファイルをアップロードしてください。",
+    "uploadBtn": "ファイルをアップロード",
+    "uploading": "アップロード中…",
+    "uploadDone": "アップロード完了 — ライブラリを更新しました。",
+    "itemCount": "{{count}} 件",
+    "itemCount_other": "{{count}} 件",
+    "noItems": "まだ項目がありません",
+    "expand": "続きを表示",
+    "collapse": "閉じる",
+    "col": {
+      "id": "ID",
+      "type": "タイプ",
+      "priority": "優先度",
+      "rule": "ルール",
+      "text": "説明"
+    },
+    "rule": {
+      "must_have": "必須",
+      "must_not_have": "禁止",
+      "preferred": "推奨"
+    },
+    "stage": {
+      "queued": "待機中…",
+      "ingest": "取り込み中",
+      "extract": "項目を抽出中",
+      "done": "完了"
+    },
+    "progress": {
+      "page": "ページ {{current}} / {{total}}",
+      "section": "セクション {{current}} / {{total}}",
+      "item": "項目 {{current}} / {{total}}",
+      "scanning": "スキャン中…"
+    },
+    "done": "ライブラリを更新しました — {{count}} 件抽出済み。",
+    "error": "アップロード失敗: {{message}}"
   },
   "common": {
     "loading": "読み込み中…",

@@ -2,7 +2,8 @@
 // interceptor; every call maps 1:1 to an endpoint in app/api/routers.
 import axios, { AxiosInstance } from "axios";
 import type {
-  Deployment, JobOut, QueueAction, QueueItem, Report, TokenResponse, User,
+  ContractSummary, Deployment, JobOut, LibraryItem,
+  QueueAction, QueueItem, Report, TokenResponse, User,
 } from "../types";
 
 const TOKEN_KEY = "cv_token";
@@ -52,5 +53,16 @@ export const api = {
   },
   async deployment(): Promise<Deployment> {
     return (await http.get<Deployment>("/api/deployment")).data;
+  },
+  async listContracts(): Promise<ContractSummary[]> {
+    return (await http.get<ContractSummary[]>("/api/contracts")).data;
+  },
+  async uploadLibraryFiles(layer: "playbook" | "standard-terms", files: FileList | File[]): Promise<JobOut> {
+    const form = new FormData();
+    Array.from(files).forEach((f) => form.append("files", f));
+    return (await http.post<JobOut>(`/api/library/${layer}`, form)).data;
+  },
+  async listLibrary(layer: "playbook" | "standard-terms"): Promise<LibraryItem[]> {
+    return (await http.get<LibraryItem[]>(`/api/library/${layer}`)).data;
   },
 };

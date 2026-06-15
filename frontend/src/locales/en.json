@@ -4,10 +4,32 @@
     "tagline": "Three-layer contract verification"
   },
   "nav": {
-    "upload": "Upload",
+    "contracts": "Contracts",
+    "upload": "New Verification",
     "report": "Report",
     "queue": "Attorney Queue",
+    "library": "Library",
     "logout": "Log out"
+  },
+  "contracts": {
+    "title": "Contracts",
+    "newVerification": "New Verification",
+    "empty": "No contracts yet. Upload one to get started.",
+    "viewReport": "View Report",
+    "col": {
+      "contract": "Contract",
+      "status": "Status",
+      "coverage": "Coverage",
+      "autoConfirm": "Auto-confirm",
+      "blocking": "Blocking",
+      "submitted": "Submitted"
+    },
+    "status": {
+      "queued": "Queued",
+      "running": "Running",
+      "completed": "Completed",
+      "failed": "Failed"
+    }
   },
   "login": {
     "title": "Sign in",
@@ -23,7 +45,18 @@
     "contractType": "Contract type",
     "submit": "Run verification",
     "running": "Verifying…",
-    "dropHint": "Drag files here or click to browse"
+    "dropHint": "Drag files here or click to browse",
+    "stage": {
+      "queued": "Queued…",
+      "ingest_contract": "Ingesting contract",
+      "ingest_sources": "Ingesting deal sources",
+      "extract": "Extracting requirements",
+      "reconcile": "Reconciling",
+      "match": "Verifying clauses",
+      "score": "Scoring",
+      "report": "Building report",
+      "done": "Done"
+    }
   },
   "report": {
     "title": "Verification report",
@@ -78,6 +111,47 @@
     "Violation": "Violation",
     "Present": "Present",
     "Non-standard": "Non-standard"
+  },
+  "library": {
+    "title": "Reference Library",
+    "playbookTitle": "Company Playbook (Layer 2)",
+    "playbookDesc": "Upload PDF or DOCX files containing your company's approved clause positions, must-have / must-not-have rules, and preferred terms.",
+    "stdTermsTitle": "Standard Contract Terms (Layer 3)",
+    "stdTermsDesc": "Upload PDF or DOCX files containing market-standard terms expected for your contract type (governing law, limitation of liability, etc.).",
+    "uploadBtn": "Upload files",
+    "uploading": "Uploading…",
+    "uploadDone": "Upload complete — library refreshed.",
+    "itemCount": "{{count}} item",
+    "itemCount_other": "{{count}} items",
+    "noItems": "No items loaded yet",
+    "expand": "more",
+    "collapse": "less",
+    "col": {
+      "id": "ID",
+      "type": "Type",
+      "priority": "Priority",
+      "rule": "Rule",
+      "text": "Description"
+    },
+    "rule": {
+      "must_have": "Must Have",
+      "must_not_have": "Must Not Have",
+      "preferred": "Preferred"
+    },
+    "stage": {
+      "queued": "Queued…",
+      "ingest": "Ingesting",
+      "extract": "Extracting items",
+      "done": "Done"
+    },
+    "progress": {
+      "page": "Page {{current}} / {{total}}",
+      "section": "Section {{current}} / {{total}}",
+      "item": "Item {{current}} / {{total}}",
+      "scanning": "Scanning…"
+    },
+    "done": "Library updated — {{count}} items extracted.",
+    "error": "Upload failed: {{message}}"
   },
   "common": {
     "loading": "Loading…",

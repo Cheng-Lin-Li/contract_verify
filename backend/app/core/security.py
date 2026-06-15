@@ -10,26 +10,24 @@ from __future__ import annotations
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
-from passlib.context import CryptContext
+import bcrypt as _bcrypt
 
 from app.config import get_settings
 
 # Role order is informational; access checks use explicit allow-lists, not rank.
 ROLE_HIERARCHY = ("operator", "gc_team", "attorney", "admin", "auditor")
 
-_pwd = CryptContext(schemes=["bcrypt"], deprecated="auto")
-
 
 def hash_password(plain: str) -> str:
     """Return a salted bcrypt hash of ``plain``."""
-    return _pwd.hash(plain)
+    return _bcrypt.hashpw(plain.encode("utf-8"), _bcrypt.gensalt()).decode("utf-8")
 
 
 def verify_password(plain: str, hashed: str) -> bool:
     """Return True if ``plain`` matches the stored ``hashed`` value."""
     try:
-        return _pwd.verify(plain, hashed)
-    except ValueError:
+        return _bcrypt.checkpw(plain.encode("utf-8"), hashed.encode("utf-8"))
+    except (ValueError, TypeError):
         return False
 
 

@@ -69,6 +69,7 @@ class PipelineResult:
     """Everything produced by one verification run."""
 
     contract: CIRDocument
+    deal_docs: list[CIRDocument]
     items: list[ReferenceItem]
     results: list[VerificationResult]
     report: VerificationReport
@@ -124,6 +125,9 @@ class VerificationPipeline:
         playbook_dir: str | Path,
         standard_terms_dir: str | Path,
         contract_type: Optional[str] = None,
+        preloaded_playbook: Optional[list] = None,
+        preloaded_std_terms: Optional[list] = None,
+        progress_fn=None,
     ) -> PipelineResult:
         """Run the full pipeline and return its :class:`PipelineResult`.
 
@@ -133,7 +137,17 @@ class VerificationPipeline:
             playbook_dir: Directory of Layer-2 playbook YAML files.
             standard_terms_dir: Directory of Layer-3 standard-term YAML files.
             contract_type: Optional contract type to scope Layer-3 retrieval.
+            preloaded_playbook: Pre-loaded Layer-2 items; takes precedence over
+                ``playbook_dir`` when provided (used to merge multiple dirs).
+            preloaded_std_terms: Pre-loaded Layer-3 items; same semantics.
         """
+        def _prog(stage: str, frac: float, stage_file: str = "") -> None:
+            if progress_fn:
+                try:
+                    progress_fn(stage, frac, stage_file)
+                except Exception:  # noqa: BLE001 — never let progress reporting break verification
+                    pass
+
         # 1. Ingest.
         residency = self.settings.component_residency()
         warnings = self.settings.validate_deployment()
@@ -145,20 +159,26 @@ class VerificationPipeline:
                           details={"mode": self.settings.deployment_mode,
                                    "residency": residency, "warnings": warnings})
 
+        _prog("ingest_contract", 0.05, Path(contract_path).name)
         contract = self.ingest.ingest_file(contract_path, DocRole.CONTRACT)
         contract_blob = self._persist_blob(contract.doc_id, contract_path)
         self.audit.record("ingest", doc_id=contract.doc_id,
                           details={"role": "contract", "blob": contract_blob})
+        _prog("ingest_contract", 0.18)
+
         # doc_id -> original filename, used to render readable requirement provenance.
         doc_names: dict[str, str] = {contract.doc_id: Path(contract_path).name}
         deal_docs = []
-        for p in deal_source_paths:
+        n_src = max(len(deal_source_paths), 1)
+        for i, p in enumerate(deal_source_paths):
+            _prog("ingest_sources", 0.20 + 0.22 * (i / n_src), Path(p).name)
             d = self.ingest.ingest_file(p, DocRole.DEAL_SOURCE)
             blob = self._persist_blob(d.doc_id, p)
             self.audit.record("ingest", doc_id=d.doc_id,
                               details={"role": "deal_source", "blob": blob})
             doc_names[d.doc_id] = Path(p).name
             deal_docs.append(d)
+        _prog("ingest_sources", 0.44)
 
         # Order deal sources by recency (undated first, then chronological by the
         # email Date header) so reconciliation — which assumes earliest-first and
@@ -166,8 +186,14 @@ class VerificationPipeline:
         # order files were supplied/globbed.
         deal_docs.sort(key=_deal_doc_recency_key)
 
-        playbook_items = load_playbook(playbook_dir)
-        std_items = load_standard_terms(standard_terms_dir, contract_type=contract_type)
+        playbook_items = (
+            preloaded_playbook if preloaded_playbook is not None
+            else load_playbook(playbook_dir)
+        )
+        std_items = (
+            preloaded_std_terms if preloaded_std_terms is not None
+            else load_standard_terms(standard_terms_dir, contract_type=contract_type)
+        )
 
         # 1b. Contract-entity enrichment: pull parties/dates/amounts/etc. into the
         # contract CIR so they ground citations and the value-aware verification.
@@ -178,11 +204,13 @@ class VerificationPipeline:
         self.audit.record("entities", doc_id=contract.doc_id, details=summary)
 
         # 2. Extract Layer-1.
+        _prog("extract", 0.50)
         req_items = self.extractor.extract_many(deal_docs)
         for it in req_items:
             self.audit.record("extract", doc_id=contract.doc_id, item_id=it.item_id, layer=1)
 
         # 3. Reconcile Layer-1.
+        _prog("reconcile", 0.62)
         reconcile: ReconcileResult = reconcile_requirements(req_items)
         req_items = reconcile.items
         self.audit.record("reconcile", doc_id=contract.doc_id,
@@ -191,6 +219,7 @@ class VerificationPipeline:
         all_items = req_items + playbook_items + std_items
 
         # 4. Verify all three layers.
+        _prog("match", 0.66)
         with log_stage("verify", doc_id=contract.doc_id, items=len(all_items)):
             results = self.matcher.verify_all(all_items, contract, reconcile)
         for res in results:
@@ -200,8 +229,10 @@ class VerificationPipeline:
                 contract_clause_id=",".join(res.matched_clause_ids),
                 model_name=self.provider.name,
             )
+        _prog("match", 0.82)
 
         # 5. Score + report.
+        _prog("score", 0.86)
         coverage = coverage_score(all_items, results)
         compliance = playbook_compliance(results)
         completeness = standard_terms_completeness(results)
@@ -218,9 +249,11 @@ class VerificationPipeline:
             self.audit.record("route", doc_id=contract.doc_id, item_id=item_id,
                               details={"queue": "attorney"})
 
+        _prog("report", 0.94)
         report = build_report(contract, all_items, results, coverage,
                               compliance, completeness, risk, gate, doc_names=doc_names)
         log.info("pipeline_complete", extra={"doc_id": contract.doc_id,
                                              "coverage": coverage.score, "risk": risk,
                                              "auto_confirm": gate.auto_confirm})
-        return PipelineResult(contract=contract, items=all_items, results=results, report=report)
+        return PipelineResult(contract=contract, deal_docs=deal_docs,
+                              items=all_items, results=results, report=report)

@@ -183,7 +183,7 @@ EMBEDDING_MODEL=bge-m3
 contract-verify pipeline --contract samples/contract/contract.txt --sources samples/deal --playbook samples/playbook --stdterms samples/standard_terms --contract-type services --out report.html
 ```
 
-For OCR over scanned PDFs, install Tesseract (`sudo apt-get install tesseract-ocr`, or `brew install tesseract`, or on Windows the UB-Mannheim installer) plus `pip install pytesseract Pillow`, and keep `OCR_ENGINE=tesseract`.
+For OCR over scanned PDFs, install Tesseract (`sudo apt-get install tesseract-ocr`, or `brew install tesseract`, or on Windows the UB-Mannheim installer https://github.com/UB-Mannheim/tesseract/wiki) plus `pip install pytesseract Pillow`, and keep `OCR_ENGINE=tesseract`.
 
 ---
 

@@ -42,6 +42,10 @@ export interface Report {
 
 export interface JobOut {
   job_id: string; contract_id: string; status: JobStatus; progress: number; error?: string | null;
+  stage?: string | null;
+  current_page?: number | null;
+  total_pages?: number | null;
+  stage_file?: string | null;
 }
 
 export interface QueueItem {
@@ -55,3 +59,26 @@ export type QueueAction =
   | "reject" | "escalate" | "add_to_playbook";
 
 export interface Deployment { mode: string; residency: Record<string, string>; warnings: string[]; }
+
+export interface ContractSummary {
+  contract_id: string;
+  job_id?: string | null;
+  status: string;
+  coverage_score?: number | null;
+  risk_score?: number | null;
+  auto_confirm?: boolean | null;
+  blocking_count: number;
+  submitted_at?: number | null;
+  contract_filename?: string | null;
+  error?: string | null;
+  stage?: string | null;
+  progress: number;
+}
+
+export interface LibraryItem {
+  item_id: string;
+  text: string;
+  type: string;
+  priority: string;
+  rule?: string | null;
+}

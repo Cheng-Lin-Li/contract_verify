@@ -16,9 +16,13 @@ export default function Layout() {
       <header className="border-b border-slate-200 bg-white">
         <div className="mx-auto flex max-w-6xl items-center gap-2 px-4 py-3">
           <span className="mr-4 font-semibold">{t("app.title")}</span>
+          <NavLink to="/contracts" className={active}>{t("nav.contracts")}</NavLink>
           <NavLink to="/upload" className={active}>{t("nav.upload")}</NavLink>
           {hasRole(user, "attorney", "gc_team", "admin") && (
             <NavLink to="/queue" className={active}>{t("nav.queue")}</NavLink>
+          )}
+          {hasRole(user, "attorney", "gc_team", "admin") && (
+            <NavLink to="/library" className={active}>{t("nav.library")}</NavLink>
           )}
           <div className="ml-auto flex items-center gap-3">
             <LanguageSwitcher />

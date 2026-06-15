@@ -137,6 +137,14 @@ class Settings:
     demo_standard_terms_dir: str = field(
         default_factory=lambda: _env("DEMO_STANDARD_TERMS_DIR", "samples/standard_terms")
     )
+    # Directories where library-upload jobs deposit their extracted YAML items.
+    # The verification pipeline merges these with the demo libraries at run time.
+    library_playbook_dir: str = field(
+        default_factory=lambda: _env("LIBRARY_PLAYBOOK_DIR", "./var/library/playbook")
+    )
+    library_standard_terms_dir: str = field(
+        default_factory=lambda: _env("LIBRARY_STANDARD_TERMS_DIR", "./var/library/standard_terms")
+    )
 
     def cors_origin_list(self) -> list[str]:
         """Return ``CORS_ORIGINS`` parsed into a list."""

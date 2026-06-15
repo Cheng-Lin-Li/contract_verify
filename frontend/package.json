@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.9.0",
   "type": "module",
-  "description": "React UI for contract_verify (upload, report, attorney queue) \u2014 EN/JA.",
+  "description": "React UI for contract_verify (upload, report, attorney queue) — EN/JA.",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
@@ -27,11 +27,11 @@
     "@types/react-dom": "^18.3.0",
     "@vitejs/plugin-react": "^4.3.1",
     "autoprefixer": "^10.4.19",
-    "jsdom": "^24.1.0",
+    "jsdom": "^25.0.0",
     "postcss": "^8.4.38",
     "tailwindcss": "^3.4.4",
     "typescript": "^5.4.5",
-    "vite": "^5.3.1",
-    "vitest": "^1.6.0"
+    "vite": "^8.0.16",
+    "vitest": "^4.1.9"
   }
 }
