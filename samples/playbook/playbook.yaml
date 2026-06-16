@@ -1,0 +1,25 @@
+# Layer 2 - Company playbook (pre-loaded policy positions).
+# Schema: id, text, type, priority, rule (must_have | must_not_have | preferred).
+- id: pb-001
+  text: "Aggregate liability must be capped at the total fees paid under the agreement."
+  type: liability
+  priority: Critical
+  rule: must_have
+
+- id: pb-002
+  text: "The agreement must not accept unlimited or uncapped liability for either party."
+  type: liability
+  priority: Critical
+  rule: must_not_have
+
+- id: pb-003
+  text: "Confidentiality obligations should be mutual and survive termination."
+  type: confidentiality
+  priority: High
+  rule: preferred
+
+- id: pb-004
+  text: "Payment terms shall not exceed net-45 days from invoice date."
+  type: payment
+  priority: High
+  rule: must_have
