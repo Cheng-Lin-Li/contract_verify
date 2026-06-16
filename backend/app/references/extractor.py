@@ -127,7 +127,7 @@ class LibraryExtractor:
         prompt = self.catalog.render(prompt_key, **vars)
         system = self.catalog.get(system_key)
         try:
-            raw = self.provider.complete_json(prompt, system=system)
+            raw = self.provider.complete_json(prompt, system=system, max_tokens=8192)
         except ValueError as exc:
             log.error("library_extract_parse_failed",
                       extra={"prompt_key": prompt_key, "error": str(exc)})

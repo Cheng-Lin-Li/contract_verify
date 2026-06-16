@@ -75,6 +75,10 @@ class LLMProvider(abc.ABC):
     def parse_json(raw: str) -> Any:
         """Best-effort extraction of a JSON value from a model completion."""
         text = raw.strip()
+        # Strip <think>...</think> reasoning blocks (Qwen3, DeepSeek-R1, etc.)
+        # before any other parsing so their stray [ { chars don't confuse the
+        # bracket-search fallback below.
+        text = re.sub(r"<think>.*?</think>", "", text, flags=re.DOTALL).strip()
         # Remove ```json ... ``` or ``` ... ``` fences.
         text = re.sub(r"^```(?:json)?\s*|\s*```$", "", text, flags=re.MULTILINE).strip()
         try:

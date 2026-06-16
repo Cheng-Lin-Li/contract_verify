@@ -355,14 +355,25 @@ function UploadSection({ layer, title, desc }: SectionProps) {
   const { t } = useTranslation();
   const fileRef = useRef<HTMLInputElement>(null);
   const [files, setFiles] = useState<FileList | null>(null);
-  const [jobId, setJobId] = useState<string | null>(null);
+  const storageKey = `library_job_${layer}`;
+  // Initialise from localStorage so active jobs survive page navigation.
+  const [jobId, setJobId] = useState<string | null>(
+    () => localStorage.getItem(storageKey)
+  );
   const [refreshKey, setRefreshKey] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [isDuplicateError, setIsDuplicateError] = useState(false);
+  const [uploadCompleted, setUploadCompleted] = useState(false);
   const [items, setItems] = useState<LibraryItem[]>([]);
   const [docs, setDocs] = useState<LibraryDocInfo[]>([]);
 
-  const job = useJobPolling(jobId, 500);
+  function persistJobId(id: string | null) {
+    if (id) localStorage.setItem(storageKey, id);
+    else localStorage.removeItem(storageKey);
+    setJobId(id);
+  }
+
+  const job = useJobPolling(jobId, 500, () => persistJobId(null));
 
   // Fetch items and docs whenever refreshKey changes.
   useEffect(() => {
@@ -372,20 +383,25 @@ function UploadSection({ layer, title, desc }: SectionProps) {
 
   useEffect(() => {
     if (job?.status === "completed") {
+      setUploadCompleted(true);
       setRefreshKey((k) => k + 1);
-      setJobId(null);
+      persistJobId(null);
       setFiles(null);
       if (fileRef.current) fileRef.current.value = "";
+    } else if (job?.status === "failed") {
+      persistJobId(null);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [job?.status]);
 
   async function handleUpload() {
     if (!files?.length) return;
     setError(null);
     setIsDuplicateError(false);
+    setUploadCompleted(false);
     try {
       const result = await api.uploadLibraryFiles(layer, files);
-      setJobId(result.job_id);
+      persistJobId(result.job_id);
     } catch (e) {
       if (axios.isAxiosError(e) && e.response) {
         const detail = e.response.data?.detail;
@@ -452,7 +468,7 @@ function UploadSection({ layer, title, desc }: SectionProps) {
 
       {running && job && <ProgressPanel job={job} />}
 
-      {job?.status === "completed" && (
+      {uploadCompleted && (
         <p className="mt-3 text-sm text-green-700">{t("library.uploadDone")}</p>
       )}
 
