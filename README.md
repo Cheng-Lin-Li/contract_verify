@@ -23,6 +23,8 @@ Every result — *Covered*, *Compliant*, *Missing*, *Violation* — cites the re
 - [The CLI](#the-cli)
 - [Configuration (.env)](#configuration-env)
 - [Running the tests](#running-the-tests)
+- [Run the full app (API server + frontend)](#run-the-full-app-api-server--frontend)
+- [Reset the demo database](#reset-the-demo-database)
 - [How a run works](#how-a-run-works)
 - [Repository layout](#repository-layout)
 - [Troubleshooting](#troubleshooting)
@@ -390,6 +392,140 @@ npm run dev          # http://localhost:5173 — proxies /api to :8000
 Open `http://localhost:5173`, log in with one of the demo accounts above, upload a contract plus its deal sources (use the files in `samples/`), and you'll get the verification report; log in as `attorney` to work the queue.
 
 > **What's wired for the demo:** login/JWT auth + RBAC, contract upload → synchronous verification → stored report, the report view, and the attorney queue. The pipeline runs in-process (fast on `LLM_PROVIDER=fake`). The heavier 3-month pieces (Postgres, Qdrant, Celery, PaddleOCR) remain skeletons behind their interfaces — see below.
+
+---
+
+## Reset the demo database
+
+The MVP stores all runtime state in files under `var/` — there is no separate database process to stop. To wipe everything and start clean, delete those directories and (if present) the SQLite file.
+
+> **The `samples/` directory is never touched** — built-in demo files always reload on startup. Your `.env` configuration is also left intact.
+
+### PowerShell (Windows)
+
+```powershell
+# Run from the project root
+Remove-Item -Recurse -Force var\reports, var\blobs, var\library, var\uploads -ErrorAction SilentlyContinue
+Remove-Item -Force contract_verify.db -ErrorAction SilentlyContinue
+
+Write-Host "Done. Restart the backend to start fresh."
+```
+
+### Command Prompt — cmd.exe (Windows)
+
+```cmd
+:: Run from the project root
+rmdir /s /q var\reports
+rmdir /s /q var\blobs
+rmdir /s /q var\library
+rmdir /s /q var\uploads
+del /f /q contract_verify.db 2>nul
+
+echo Done. Restart the backend to start fresh.
+```
+
+> **Note:** `rmdir /s /q` silently skips a directory that does not exist on some Windows versions. "The system cannot find the path specified" is not an error — it just means that directory had not been created yet.
+
+### bash / zsh (macOS, Linux, WSL)
+
+```bash
+# Run from the project root
+rm -rf var/reports var/blobs var/library var/uploads
+rm -f contract_verify.db
+
+echo "Done. Restart the backend to start fresh."
+```
+
+### What each path holds
+
+| Path | Contents |
+|---|---|
+| `var/reports/` | Verification reports, job status, CIRs, attorney queue, library docs index |
+| `var/blobs/` | Uploaded contract and deal-source file content |
+| `var/library/` | Playbook / standard-terms YAML files uploaded via the Library page |
+| `var/uploads/` | Temporary upload staging area |
+| `contract_verify.db` | SQLite file — may not exist if the ORM was never activated |
+
+To also clear the audit trail (append-only by design, so not deleted by default):
+
+```powershell
+Remove-Item -Force var\audit.jsonl -ErrorAction SilentlyContinue   # PowerShell
+```
+```cmd
+del /f /q var\audit.jsonl 2>nul                                    :: cmd.exe
+```
+```bash
+rm -f var/audit.jsonl                                              # bash
+```
+
+### Verify clean state
+
+Run `doctor` after the reset to confirm the app is back to a clean baseline:
+
+```bash
+# bash / zsh / WSL / Git Bash
+PYTHONPATH=backend python -m cli.main doctor
+# or, if installed with pip install -e .
+contract-verify doctor
+```
+```bat
+:: cmd.exe (Windows)
+set PYTHONPATH=backend
+python -m cli.main doctor
+```
+```powershell
+# PowerShell (Windows)
+$env:PYTHONPATH = "backend"
+python -m cli.main doctor
+```
+
+### Why the Library still shows items after a reset
+
+After a reset you may still see items in the **Company Playbook** and **Standard Contract Terms** sections of the Library page. These are **built-in demo items** loaded from `samples/` — not from `var/` — so the reset does not remove them:
+
+| Items visible | Source file |
+|---|---|
+| Company Playbook items | `samples/playbook/playbook.yaml` |
+| Standard Contract Terms items | `samples/standard_terms/standard_terms.yaml` |
+
+The list endpoint always merges two directories: `samples/` (demo items, always present, labeled **Built-in** in the UI) and `var/library/` (items you uploaded, cleared by the reset). This is intentional — the sample data gives you something to verify against even with a clean `var/`.
+
+#### To get a truly empty library
+
+**Option 1 — clear just the YAML content** (keeps the files for easy restore):
+
+```powershell
+# PowerShell
+Clear-Content samples\playbook\playbook.yaml
+Clear-Content samples\standard_terms\standard_terms.yaml
+```
+```cmd
+:: cmd.exe
+copy /y nul samples\playbook\playbook.yaml
+copy /y nul samples\standard_terms\standard_terms.yaml
+```
+```bash
+# bash
+> samples/playbook/playbook.yaml
+> samples/standard_terms/standard_terms.yaml
+```
+
+**Option 2 — redirect the demo dirs to an empty folder** (non-destructive to the sample files):
+
+Add these lines to `.env`:
+
+```ini
+DEMO_PLAYBOOK_DIR=./var/empty
+DEMO_STANDARD_TERMS_DIR=./var/empty
+```
+
+The app will find no YAML files there and load zero demo items.
+
+**To restore the sample data** after either option:
+
+```bash
+git checkout samples/playbook/playbook.yaml samples/standard_terms/standard_terms.yaml
+```
 
 ---
 

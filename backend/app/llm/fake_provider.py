@@ -27,6 +27,17 @@ _REQUIREMENT_HINTS = (
     "governing law", "renewal", "must", "shall", "require",
 )
 
+# Broader vocabulary used specifically for standard-terms library extraction —
+# standard terms docs use clause titles and policy language that rarely contains
+# the requirement-style hints above.
+_STANDARD_TERM_HINTS = _REQUIREMENT_HINTS + (
+    "clause", "govern", "law", "agreement", "contract", "party", "parties",
+    "applicable", "term", "provision", "obligation", "right", "intellectual",
+    "property", "dispute", "arbitration", "jurisdiction", "force majeure",
+    "limitation", "damage", "loss", "indemnity", "notice", "assignment",
+    "waiver", "severab", "entire agreement", "amendment", "standard",
+)
+
 
 class FakeProvider(LLMProvider):
     """A rule-based stand-in for a real chat model (deterministic output)."""
@@ -151,13 +162,18 @@ class FakeProvider(LLMProvider):
         return items[:25]
 
     def _extract_standard_terms(self, prompt: str) -> list[dict]:
-        """Return standard-terms items derived from the source text."""
+        """Return standard-terms items derived from the source text.
+
+        Uses a broader keyword set and a lower length threshold than requirement
+        extraction so that clause-title style paragraphs common in DOCX standard-
+        terms libraries are captured by the deterministic offline provider.
+        """
         items: list[dict] = []
         for line in self._candidate_lines(prompt):
             low = line.lower()
-            if len(line) < 20:
+            if len(line) < 8:
                 continue
-            if not any(h in low for h in _REQUIREMENT_HINTS):
+            if not any(h in low for h in _STANDARD_TERM_HINTS):
                 continue
             items.append({
                 "text": line[:300],

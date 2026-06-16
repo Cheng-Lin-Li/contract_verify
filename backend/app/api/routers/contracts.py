@@ -354,7 +354,7 @@ def get_document(doc_id: str, user=Depends(get_current_user)) -> CIRDocumentOut:
         filename=(cir.get("metadata") or {}).get("filename", cir["doc_id"][:8]),
         pages=cir.get("pages", 1),
         blocks=blocks,
-        metadata={k: v for k, v in (cir.get("metadata") or {}).items()
+        metadata={k: str(v) for k, v in (cir.get("metadata") or {}).items()
                   if k not in ("filename",) and not isinstance(v, (dict, list))},
     )
 
