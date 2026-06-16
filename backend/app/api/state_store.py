@@ -24,6 +24,16 @@ def _file(kind: str, key: str) -> Path:
     return _root() / f"{kind}_{key}.json"
 
 
+def _load_json(f: Path, default: Any) -> Any:
+    if not f.exists():
+        return default
+    try:
+        text = f.read_text(encoding="utf-8")
+        return json.loads(text) if text.strip() else default
+    except json.JSONDecodeError:
+        return default
+
+
 # --- reports ---------------------------------------------------------------
 
 def save_report(contract_id: str, payload: dict[str, Any]) -> None:
@@ -31,8 +41,7 @@ def save_report(contract_id: str, payload: dict[str, Any]) -> None:
 
 
 def load_report(contract_id: str) -> Optional[dict[str, Any]]:
-    f = _file("report", contract_id)
-    return json.loads(f.read_text(encoding="utf-8")) if f.exists() else None
+    return _load_json(_file("report", contract_id), None)
 
 
 # --- jobs ------------------------------------------------------------------
@@ -42,8 +51,7 @@ def save_job(job: dict[str, Any]) -> None:
 
 
 def load_job(job_id: str) -> Optional[dict[str, Any]]:
-    f = _file("job", job_id)
-    return json.loads(f.read_text(encoding="utf-8")) if f.exists() else None
+    return _load_json(_file("job", job_id), None)
 
 
 # --- attorney queue --------------------------------------------------------
@@ -56,8 +64,7 @@ def save_queue_items(items: list[dict[str, Any]]) -> None:
 
 
 def load_queue_items() -> list[dict[str, Any]]:
-    f = _root() / "queue.json"
-    return json.loads(f.read_text(encoding="utf-8")) if f.exists() else []
+    return _load_json(_root() / "queue.json", [])
 
 
 def update_queue_item(queue_id: str, **changes: Any) -> Optional[dict[str, Any]]:
@@ -79,8 +86,7 @@ def save_cir(doc_id: str, cir_dict: dict[str, Any]) -> None:
 
 
 def load_cir(doc_id: str) -> Optional[dict[str, Any]]:
-    f = _file("cir", doc_id)
-    return json.loads(f.read_text(encoding="utf-8")) if f.exists() else None
+    return _load_json(_file("cir", doc_id), None)
 
 
 # --- contract → source document list -------------------------------------
@@ -90,8 +96,7 @@ def save_contract_sources(contract_id: str, sources: list[dict[str, Any]]) -> No
 
 
 def load_contract_sources(contract_id: str) -> list[dict[str, Any]]:
-    f = _file("sources", contract_id)
-    return json.loads(f.read_text(encoding="utf-8")) if f.exists() else []
+    return _load_json(_file("sources", contract_id), [])
 
 
 def delete_contract(contract_id: str) -> None:
@@ -136,7 +141,7 @@ def _library_docs_file(layer: str) -> Path:
 
 def append_library_docs(layer: str, new_docs: list[dict[str, Any]]) -> None:
     f = _library_docs_file(layer)
-    existing: list[dict[str, Any]] = json.loads(f.read_text(encoding="utf-8")) if f.exists() else []
+    existing: list[dict[str, Any]] = _load_json(f, [])
     ids = {d["doc_id"] for d in existing}
     for doc in new_docs:
         if doc["doc_id"] not in ids:
@@ -145,8 +150,7 @@ def append_library_docs(layer: str, new_docs: list[dict[str, Any]]) -> None:
 
 
 def load_library_docs(layer: str) -> list[dict[str, Any]]:
-    f = _library_docs_file(layer)
-    return json.loads(f.read_text(encoding="utf-8")) if f.exists() else []
+    return _load_json(_library_docs_file(layer), [])
 
 
 def delete_library_doc_entry(layer: str, doc_id: str) -> None:
@@ -154,7 +158,7 @@ def delete_library_doc_entry(layer: str, doc_id: str) -> None:
     f = _library_docs_file(layer)
     if not f.exists():
         return
-    docs = json.loads(f.read_text(encoding="utf-8"))
+    docs = _load_json(f, [])
     docs = [d for d in docs if d.get("doc_id") != doc_id]
     f.write_text(json.dumps(docs), encoding="utf-8")
 
