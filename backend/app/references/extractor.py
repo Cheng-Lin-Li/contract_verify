@@ -19,6 +19,13 @@ from app.prompts.loader import PromptCatalog, load_catalog
 
 log = get_logger("references.extractor")
 
+_VALID_RULES = {"must_have", "must_not_have", "preferred"}
+_VALID_PRIORITIES = {"Critical", "High", "Medium", "Low"}
+_VALID_TYPES = {
+    "liability", "payment", "confidentiality", "data", "SLA",
+    "delivery", "IP", "indemnity", "governing_law", "general",
+}
+
 
 def _coerce_priority(value: str) -> Priority:
     """Map a model-provided priority string to a :class:`Priority` (default Medium)."""
@@ -97,3 +104,105 @@ class RequirementExtractor:
         for doc in docs:
             all_items.extend(self.extract(doc, start_index=len(all_items)))
         return all_items
+
+
+class LibraryExtractor:
+    """Extracts structured Layer-2 / Layer-3 items from uploaded library documents.
+
+    Unlike :class:`RequirementExtractor` (which targets deal sources), this
+    extractor is designed for company playbook documents and standard-terms
+    libraries. It returns plain dicts ready for YAML serialisation so the
+    loader can ingest them on the next verification run.
+    """
+
+    def __init__(self, provider: LLMProvider, catalog: Optional[PromptCatalog] = None) -> None:
+        self.provider = provider
+        self.catalog = catalog or load_catalog()
+
+    # ------------------------------------------------------------------
+    # Internal helpers
+    # ------------------------------------------------------------------
+
+    def _call(self, prompt_key: str, system_key: str, **vars) -> list[dict]:
+        prompt = self.catalog.render(prompt_key, **vars)
+        system = self.catalog.get(system_key)
+        try:
+            raw = self.provider.complete_json(prompt, system=system)
+        except ValueError as exc:
+            log.error("library_extract_parse_failed",
+                      extra={"prompt_key": prompt_key, "error": str(exc)})
+            return []
+        return raw if isinstance(raw, list) else []
+
+    @staticmethod
+    def _clean_item(obj: dict, layer: str, seq: int) -> Optional[dict]:
+        """Validate and normalise one raw LLM output object."""
+        text = (obj.get("text") or "").strip()
+        if not text:
+            return None
+        prefix = "pb" if layer == "playbook" else "st"
+        item: dict = {
+            "id": f"{prefix}-{seq:03d}",
+            "text": text,
+            "type": obj.get("type", "general") if obj.get("type") in _VALID_TYPES else "general",
+            "priority": obj.get("priority", "High") if obj.get("priority") in _VALID_PRIORITIES else "High",
+        }
+        if layer == "playbook":
+            rule = obj.get("rule", "must_have")
+            item["rule"] = rule if rule in _VALID_RULES else "must_have"
+        else:
+            ct = obj.get("contract_type")
+            if ct:
+                item["contract_type"] = str(ct)
+        return item
+
+    # ------------------------------------------------------------------
+    # Public API
+    # ------------------------------------------------------------------
+
+    def extract_playbook(self, doc: CIRDocument, start_index: int = 0) -> list[dict]:
+        """Extract Layer-2 playbook positions from a document.
+
+        Args:
+            doc: Ingested library document (CIR).
+            start_index: Offset for sequential id numbering across multiple docs.
+
+        Returns:
+            List of dicts with keys ``id``, ``text``, ``type``, ``priority``,
+            ``rule`` — ready for YAML serialisation and loading via
+            :func:`app.references.loaders.load_playbook`.
+        """
+        with log_stage("extract_playbook", doc_id=doc.doc_id):
+            raw = self._call("extract_playbook_positions", "system_extract_library",
+                             source_text=doc.full_text())
+            items = []
+            for offset, obj in enumerate(raw):
+                item = self._clean_item(obj, "playbook", start_index + offset + 1)
+                if item:
+                    items.append(item)
+            log.info("extracted_playbook_positions",
+                     extra={"doc_id": doc.doc_id, "count": len(items)})
+            return items
+
+    def extract_standard_terms(self, doc: CIRDocument, start_index: int = 0) -> list[dict]:
+        """Extract Layer-3 standard terms from a document.
+
+        Args:
+            doc: Ingested library document (CIR).
+            start_index: Offset for sequential id numbering across multiple docs.
+
+        Returns:
+            List of dicts with keys ``id``, ``text``, ``type``, ``priority``,
+            and optionally ``contract_type`` — ready for YAML serialisation.
+        """
+        with log_stage("extract_standard_terms", doc_id=doc.doc_id):
+            raw = self._call("extract_standard_terms", "system_extract_library",
+                             source_text=doc.full_text())
+            items = []
+            for offset, obj in enumerate(raw):
+                item = self._clean_item(obj, "standard_terms", start_index + offset + 1)
+                if item:
+                    items.append(item)
+            log.info("extracted_standard_terms",
+                     extra={"doc_id": doc.doc_id, "count": len(items)})
+            return items

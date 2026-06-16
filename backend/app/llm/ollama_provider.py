@@ -2,7 +2,7 @@
 
 Targets the OpenAI-compatible / native Ollama HTTP endpoint exposed on the
 customer's host (default ``http://localhost:11434``), so the same adapter shape
-is reused by the cloud providers. Models (e.g. ``qwen3:14b-instruct-q4_K_M``)
+is reused by the cloud providers. Models (e.g. ``qwen3:14b``)
 run on the RTX 4070 Ti; no data leaves the host.
 """
 
@@ -54,15 +54,25 @@ class OllamaProvider(LLMProvider):
             messages.append({"role": "system", "content": system})
         messages.append({"role": "user", "content": prompt})
 
+        model_name = model or self.default_model
         payload = {
-            "model": model or self.default_model,
+            "model": model_name,
             "messages": messages,
             "stream": False,
             "options": {"temperature": temperature, "num_predict": max_tokens},
         }
         try:
             resp = requests.post(f"{self.base_url}/api/chat", json=payload, timeout=self.timeout)
+            if resp.status_code == 404:
+                # Ollama returns 404 from /api/chat when the tag isn't pulled locally.
+                raise RuntimeError(
+                    f"Ollama has no local model '{model_name}'. Pull it with "
+                    f"`ollama pull {model_name}`, or set LLM_EXTRACTION_MODEL / "
+                    f"LLM_VERIFY_MODEL in .env to a tag shown by `ollama list`."
+                )
             resp.raise_for_status()
+        except RuntimeError:
+            raise
         except Exception as exc:  # pragma: no cover - network path
             raise RuntimeError(f"Ollama request failed: {exc}") from exc
 

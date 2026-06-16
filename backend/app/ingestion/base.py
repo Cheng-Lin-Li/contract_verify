@@ -26,12 +26,19 @@ class DocumentParser(abc.ABC):
     format: str = "unknown"
 
     @abc.abstractmethod
-    def parse(self, data: bytes, filename: str) -> tuple[list[CIRBlock], dict, int]:
+    def parse(
+        self,
+        data: bytes,
+        filename: str,
+        progress_callback=None,
+    ) -> tuple[list[CIRBlock], dict, int]:
         """Parse ``data`` into blocks.
 
         Args:
             data: Raw file bytes.
             filename: Original filename (used for metadata / hints).
+            progress_callback: Optional ``(current, total) -> None`` called after
+                each page/section during parsing so callers can report progress.
 
         Returns:
             A tuple ``(blocks, metadata, page_count)``.

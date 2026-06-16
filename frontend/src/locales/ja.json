@@ -1,0 +1,214 @@
+{
+  "app": {
+    "title": "contract_verify",
+    "tagline": "3層コントラクト検証"
+  },
+  "nav": {
+    "contracts": "契約一覧",
+    "upload": "新規検証",
+    "report": "レポート",
+    "queue": "弁護士キュー",
+    "library": "ライブラリ",
+    "logout": "ログアウト"
+  },
+  "contracts": {
+    "title": "契約一覧",
+    "newVerification": "新規検証",
+    "empty": "契約がありません。アップロードして開始してください。",
+    "viewReport": "レポートを表示",
+    "delete": "削除",
+    "deleteConfirm": "「{{name}}」のレポートを削除しますか？この操作は取り消せません。",
+    "col": {
+      "contract": "契約書",
+      "status": "ステータス",
+      "coverage": "カバレッジ",
+      "autoConfirm": "自動確認",
+      "blocking": "ブロック",
+      "review": "レビュー",
+      "submitted": "送信日時"
+    },
+    "status": {
+      "queued": "待機中",
+      "running": "実行中",
+      "completed": "完了",
+      "failed": "失敗"
+    },
+    "reviewStatus": {
+      "pending": "保留中",
+      "in_review": "レビュー中",
+      "cleared": "承認済",
+      "rejected": "却下",
+      "escalated": "エスカレーション済"
+    }
+  },
+  "login": {
+    "title": "サインイン",
+    "username": "ユーザー名",
+    "password": "パスワード",
+    "submit": "サインイン",
+    "error": "認証情報が無効です"
+  },
+  "upload": {
+    "title": "契約書を検証",
+    "contract": "契約書 (PDF / DOCX)",
+    "sources": "取引ソース（メール、タームシート、添付ファイル）",
+    "contractType": "契約タイプ",
+    "submit": "検証を実行",
+    "running": "検証中…",
+    "dropHint": "ファイルをここにドラッグするかクリックして選択",
+    "stage": {
+      "queued": "待機中…",
+      "ingest_contract": "契約書を取り込み中",
+      "ingest_sources": "取引ソースを取り込み中",
+      "extract": "要件を抽出中",
+      "reconcile": "照合中",
+      "match": "条項を検証中",
+      "score": "スコアリング中",
+      "report": "レポートを作成中",
+      "done": "完了"
+    }
+  },
+  "viewer": {
+    "backToReport": "レポートに戻る",
+    "backToLibrary": "ライブラリに戻る",
+    "page": "ページ",
+    "pages": "ページ",
+    "blocks": "ブロック",
+    "cited": "引用済み",
+    "citedBlocks": "引用ブロック",
+    "pageLabel": "ページ {{page}}",
+    "empty": "コンテンツブロックが見つかりません。",
+    "notFound": "ドキュメントのコンテンツが利用できません。ドキュメント表示を有効にするには、契約書を再アップロードしてください。"
+  },
+  "report": {
+    "title": "検証レポート",
+    "coverage": "カバレッジ",
+    "risk": "リスク",
+    "compliance": "プレイブック準拠",
+    "completeness": "標準条項",
+    "confidence": "信頼度",
+    "autoConfirm": "自動確認",
+    "blocked": "弁護士へ転送",
+    "entities": "契約エンティティ",
+    "governingLaw": "準拠法",
+    "col": {
+      "item": "項目",
+      "layer": "層",
+      "status": "ステータス",
+      "confidence": "信頼度",
+      "requirement": "参照",
+      "clause": "一致条項",
+      "notes": "備考",
+      "source": "ソース"
+    },
+    "layer": {
+      "1": "要件",
+      "2": "プレイブック",
+      "3": "標準条項"
+    },
+    "blockingReasons": "ブロック理由",
+    "supersededBy": "{{id}} により上書き",
+    "documents": "ドキュメント",
+    "contractDoc": "契約書",
+    "noSources": "取引ソース文書が利用できません（再検証で有効になります）。",
+    "backToContracts": "契約一覧に戻る",
+    "libraryWarningTitle": "警告：アップロードされたファイルがライブラリ参照文書と一致しています"
+  },
+  "queue": {
+    "title": "弁護士キュー",
+    "empty": "レビュー待ちの項目はありません。",
+    "reason": "理由",
+    "sla": "SLA",
+    "risk": "リスク",
+    "referenceRule": "参照ルール",
+    "contractClause": "契約条項",
+    "noClause": "契約書に一致する条項が見つかりません",
+    "viewContract": "契約書を表示",
+    "viewReport": "レポートを表示",
+    "viewInContract": "契約書で確認",
+    "riskScore": "リスク {{score}}",
+    "itemCount": "{{count}} 件",
+    "itemCount_other": "{{count}} 件",
+    "actions": {
+      "approve": "承認",
+      "reject": "却下",
+      "escalate": "エスカレーション",
+      "addToPlaybook": "プレイブックに追加"
+    },
+    "attorneyAction": {
+      "approve": "承認済",
+      "approve_with_edits": "承認済（修正あり）",
+      "request_clarification": "確認要求",
+      "reject": "却下済",
+      "escalate": "エスカレーション済",
+      "add_to_playbook": "プレイブックに追加済"
+    }
+  },
+  "status": {
+    "Covered": "カバー済",
+    "Partial": "部分的",
+    "Missing": "欠落",
+    "Contradicted": "矛盾",
+    "Superseded": "上書き",
+    "Compliant": "準拠",
+    "Deviation": "逸脱",
+    "Violation": "違反",
+    "Present": "あり",
+    "Non-standard": "非標準"
+  },
+  "library": {
+    "title": "参照ライブラリ",
+    "playbookTitle": "社内プレイブック（レイヤー2）",
+    "playbookDesc": "承認済み条項、必須・禁止ルール、優先条件を含むPDFまたはDOCXファイルをアップロードしてください。",
+    "stdTermsTitle": "標準契約条項（レイヤー3）",
+    "stdTermsDesc": "準拠法、責任制限など、契約タイプに期待される市場標準条項を含むPDFまたはDOCXファイルをアップロードしてください。",
+    "uploadBtn": "ファイルをアップロード",
+    "uploading": "アップロード中…",
+    "uploadDone": "アップロード完了 — ライブラリを更新しました。",
+    "itemCount": "{{count}} 件",
+    "itemCount_other": "{{count}} 件",
+    "noItems": "まだ項目がありません",
+    "expand": "続きを表示",
+    "collapse": "閉じる",
+    "sourceDocuments": "ソースドキュメント",
+    "col": {
+      "id": "ID",
+      "type": "タイプ",
+      "priority": "優先度",
+      "rule": "ルール",
+      "text": "説明"
+    },
+    "rule": {
+      "must_have": "必須",
+      "must_not_have": "禁止",
+      "preferred": "推奨"
+    },
+    "stage": {
+      "queued": "待機中…",
+      "ingest": "取り込み中",
+      "extract": "項目を抽出中",
+      "done": "完了"
+    },
+    "progress": {
+      "page": "ページ {{current}} / {{total}}",
+      "section": "セクション {{current}} / {{total}}",
+      "item": "項目 {{current}} / {{total}}",
+      "scanning": "スキャン中…"
+    },
+    "done": "ライブラリを更新しました — {{count}} 件抽出済み。",
+    "error": "アップロード失敗: {{message}}",
+    "duplicateUpload": "既にアップロード済みです：{{names}}。先に既存バージョンを削除してください。",
+    "deleteDoc": "削除",
+    "deleteDocConfirm": "「{{name}}」を削除しますか？抽出された {{count}} 件の項目もライブラリから削除されます。",
+    "deleteDocReferenced": "削除できません：このドキュメントの {{count}} 件の項目が既存の検証レポートで参照されています。先にそのレポートを削除してください。",
+    "deleteDocError": "削除失敗: {{message}}",
+    "groupBuiltIn": "組み込み",
+    "noSourceDoc": "追跡なしのアップロード"
+  },
+  "common": {
+    "loading": "読み込み中…",
+    "error": "問題が発生しました",
+    "yes": "はい",
+    "no": "いいえ"
+  }
+}

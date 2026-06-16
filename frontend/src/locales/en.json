@@ -1,0 +1,214 @@
+{
+  "app": {
+    "title": "contract_verify",
+    "tagline": "Three-layer contract verification"
+  },
+  "nav": {
+    "contracts": "Contracts",
+    "upload": "New Verification",
+    "report": "Report",
+    "queue": "Attorney Queue",
+    "library": "Library",
+    "logout": "Log out"
+  },
+  "contracts": {
+    "title": "Contracts",
+    "newVerification": "New Verification",
+    "empty": "No contracts yet. Upload one to get started.",
+    "viewReport": "View Report",
+    "delete": "Delete",
+    "deleteConfirm": "Delete report for \"{{name}}\"? This cannot be undone.",
+    "col": {
+      "contract": "Contract",
+      "status": "Status",
+      "coverage": "Coverage",
+      "autoConfirm": "Auto-confirm",
+      "blocking": "Blocking",
+      "review": "Review",
+      "submitted": "Submitted"
+    },
+    "status": {
+      "queued": "Queued",
+      "running": "Running",
+      "completed": "Completed",
+      "failed": "Failed"
+    },
+    "reviewStatus": {
+      "pending": "Pending",
+      "in_review": "In Review",
+      "cleared": "Cleared",
+      "rejected": "Rejected",
+      "escalated": "Escalated"
+    }
+  },
+  "login": {
+    "title": "Sign in",
+    "username": "Username",
+    "password": "Password",
+    "submit": "Sign in",
+    "error": "Invalid credentials"
+  },
+  "upload": {
+    "title": "Verify a contract",
+    "contract": "Contract (PDF / DOCX)",
+    "sources": "Deal sources (emails, term sheets, attachments)",
+    "contractType": "Contract type",
+    "submit": "Run verification",
+    "running": "Verifying…",
+    "dropHint": "Drag files here or click to browse",
+    "stage": {
+      "queued": "Queued…",
+      "ingest_contract": "Ingesting contract",
+      "ingest_sources": "Ingesting deal sources",
+      "extract": "Extracting requirements",
+      "reconcile": "Reconciling",
+      "match": "Verifying clauses",
+      "score": "Scoring",
+      "report": "Building report",
+      "done": "Done"
+    }
+  },
+  "viewer": {
+    "backToReport": "Back to report",
+    "backToLibrary": "Back to library",
+    "page": "page",
+    "pages": "pages",
+    "blocks": "blocks",
+    "cited": "cited",
+    "citedBlocks": "Cited blocks",
+    "pageLabel": "Page {{page}}",
+    "empty": "No content blocks found.",
+    "notFound": "Document content is not available. Please re-upload the contract to enable document viewing."
+  },
+  "report": {
+    "title": "Verification report",
+    "coverage": "Coverage",
+    "risk": "Risk",
+    "compliance": "Playbook compliance",
+    "completeness": "Standard terms",
+    "confidence": "Confidence",
+    "autoConfirm": "Auto-confirm",
+    "blocked": "Routed to attorney",
+    "entities": "Contract entities",
+    "governingLaw": "Governing law",
+    "col": {
+      "item": "Item",
+      "layer": "Layer",
+      "status": "Status",
+      "confidence": "Confidence",
+      "requirement": "Reference",
+      "clause": "Matched clause",
+      "notes": "Notes",
+      "source": "Source"
+    },
+    "layer": {
+      "1": "Requirements",
+      "2": "Playbook",
+      "3": "Standard terms"
+    },
+    "blockingReasons": "Blocking reasons",
+    "supersededBy": "superseded by {{id}}",
+    "documents": "Documents",
+    "contractDoc": "Contract",
+    "noSources": "Deal source documents not available (re-run verification to enable).",
+    "backToContracts": "Back to contracts",
+    "libraryWarningTitle": "Warning: uploaded file matches a library reference document"
+  },
+  "queue": {
+    "title": "Attorney Queue",
+    "empty": "No items awaiting review.",
+    "reason": "Reason",
+    "sla": "SLA",
+    "risk": "Risk",
+    "referenceRule": "Reference rule",
+    "contractClause": "Contract clause",
+    "noClause": "No matching clause found in the contract",
+    "viewContract": "View Contract",
+    "viewReport": "View Report",
+    "viewInContract": "View in contract",
+    "riskScore": "Risk {{score}}",
+    "itemCount": "{{count}} item",
+    "itemCount_other": "{{count}} items",
+    "actions": {
+      "approve": "Approve",
+      "reject": "Reject",
+      "escalate": "Escalate",
+      "addToPlaybook": "Add to playbook"
+    },
+    "attorneyAction": {
+      "approve": "Approved",
+      "approve_with_edits": "Approved (with edits)",
+      "request_clarification": "Clarification requested",
+      "reject": "Rejected",
+      "escalate": "Escalated",
+      "add_to_playbook": "Added to playbook"
+    }
+  },
+  "status": {
+    "Covered": "Covered",
+    "Partial": "Partial",
+    "Missing": "Missing",
+    "Contradicted": "Contradicted",
+    "Superseded": "Superseded",
+    "Compliant": "Compliant",
+    "Deviation": "Deviation",
+    "Violation": "Violation",
+    "Present": "Present",
+    "Non-standard": "Non-standard"
+  },
+  "library": {
+    "title": "Reference Library",
+    "playbookTitle": "Company Playbook (Layer 2)",
+    "playbookDesc": "Upload PDF or DOCX files containing your company's approved clause positions, must-have / must-not-have rules, and preferred terms.",
+    "stdTermsTitle": "Standard Contract Terms (Layer 3)",
+    "stdTermsDesc": "Upload PDF or DOCX files containing market-standard terms expected for your contract type (governing law, limitation of liability, etc.).",
+    "uploadBtn": "Upload files",
+    "uploading": "Uploading…",
+    "uploadDone": "Upload complete — library refreshed.",
+    "itemCount": "{{count}} item",
+    "itemCount_other": "{{count}} items",
+    "noItems": "No items loaded yet",
+    "expand": "more",
+    "collapse": "less",
+    "sourceDocuments": "Source documents",
+    "col": {
+      "id": "ID",
+      "type": "Type",
+      "priority": "Priority",
+      "rule": "Rule",
+      "text": "Description"
+    },
+    "rule": {
+      "must_have": "Must Have",
+      "must_not_have": "Must Not Have",
+      "preferred": "Preferred"
+    },
+    "stage": {
+      "queued": "Queued…",
+      "ingest": "Ingesting",
+      "extract": "Extracting items",
+      "done": "Done"
+    },
+    "progress": {
+      "page": "Page {{current}} / {{total}}",
+      "section": "Section {{current}} / {{total}}",
+      "item": "Item {{current}} / {{total}}",
+      "scanning": "Scanning…"
+    },
+    "done": "Library updated — {{count}} items extracted.",
+    "error": "Upload failed: {{message}}",
+    "duplicateUpload": "Already uploaded: {{names}}. Delete the existing version first.",
+    "deleteDoc": "Delete",
+    "deleteDocConfirm": "Delete \"{{name}}\"? Its {{count}} extracted item(s) will be removed from the library.",
+    "deleteDocReferenced": "Cannot delete: {{count}} item(s) from this document are referenced in existing verification reports. Delete those reports first.",
+    "deleteDocError": "Delete failed: {{message}}",
+    "groupBuiltIn": "Built-in",
+    "noSourceDoc": "Untracked upload"
+  },
+  "common": {
+    "loading": "Loading…",
+    "error": "Something went wrong",
+    "yes": "Yes",
+    "no": "No"
+  }
+}

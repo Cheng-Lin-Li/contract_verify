@@ -110,6 +110,60 @@ Return JSON:
 [/SOURCE]
 ```
 
+### system_extract_library
+```
+You are a meticulous contracts analyst. You extract structured clause positions
+and standard terms from company policy documents and market-standard term
+libraries. You never invent items. You return only valid JSON, no prose.
+```
+
+### extract_playbook_positions
+```
+[TASK:EXTRACT_PLAYBOOK]
+Extract every contract policy position from the COMPANY PLAYBOOK document below.
+A position is a specific requirement, restriction, or preferred stance on a
+contract term (e.g. a liability cap rule, a payment-term requirement, a
+confidentiality preference).
+
+For each position return an object with:
+  - text     : the position as one clear, self-contained sentence
+  - type     : one of: liability, payment, confidentiality, data, SLA,
+               delivery, IP, indemnity, governing_law, general
+  - priority : Critical | High | Medium | Low
+  - rule     : must_have     (required — "must", "shall", "required")
+             | must_not_have (prohibited — "must not", "shall not", "prohibited")
+             | preferred     (standard ask, negotiable — "should", "preferred")
+
+Infer "rule" from the language of each clause. Return ONLY a JSON array of
+these objects. No prose, no commentary, no markdown wrapper.
+
+[SOURCE]
+{source_text}
+[/SOURCE]
+```
+
+### extract_standard_terms
+```
+[TASK:EXTRACT_STANDARD_TERMS]
+Extract every standard contract term described in the DOCUMENT below.
+A standard term is a clause or protection that market practice expects in a
+well-formed commercial agreement of the relevant type.
+
+For each term return an object with:
+  - text          : the term as one clear, self-contained sentence
+  - type          : one of: liability, payment, confidentiality, data, SLA,
+                    delivery, IP, indemnity, governing_law, general
+  - priority      : Critical | High | Medium | Low
+  - contract_type : the contract type this applies to (e.g. services, msa,
+                    nda, employment), or null if it applies generally
+
+Return ONLY a JSON array of these objects. No prose, no commentary.
+
+[SOURCE]
+{source_text}
+[/SOURCE]
+```
+
 ### report_summary
 ```
 [TASK:SUMMARIZE]

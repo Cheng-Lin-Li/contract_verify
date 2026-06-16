@@ -17,7 +17,7 @@ class TextParser(DocumentParser):
     extensions = ("txt", "md", "markdown")
     format = "txt"
 
-    def parse(self, data: bytes, filename: str) -> tuple[list[CIRBlock], dict, int]:
+    def parse(self, data: bytes, filename: str, progress_callback=None) -> tuple[list[CIRBlock], dict, int]:
         """Split decoded text into paragraph blocks.
 
         Args:

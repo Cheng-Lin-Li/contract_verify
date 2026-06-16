@@ -27,6 +27,17 @@ _REQUIREMENT_HINTS = (
     "governing law", "renewal", "must", "shall", "require",
 )
 
+# Broader vocabulary used specifically for standard-terms library extraction —
+# standard terms docs use clause titles and policy language that rarely contains
+# the requirement-style hints above.
+_STANDARD_TERM_HINTS = _REQUIREMENT_HINTS + (
+    "clause", "govern", "law", "agreement", "contract", "party", "parties",
+    "applicable", "term", "provision", "obligation", "right", "intellectual",
+    "property", "dispute", "arbitration", "jurisdiction", "force majeure",
+    "limitation", "damage", "loss", "indemnity", "notice", "assignment",
+    "waiver", "severab", "entire agreement", "amendment", "standard",
+)
+
 
 class FakeProvider(LLMProvider):
     """A rule-based stand-in for a real chat model (deterministic output)."""
@@ -50,6 +61,10 @@ class FakeProvider(LLMProvider):
         """
         if "[TASK:VERIFY]" in prompt:
             return json.dumps(self._verify(prompt))
+        if "[TASK:EXTRACT_PLAYBOOK]" in prompt:
+            return json.dumps(self._extract_playbook(prompt))
+        if "[TASK:EXTRACT_STANDARD_TERMS]" in prompt:
+            return json.dumps(self._extract_standard_terms(prompt))
         if "[TASK:EXTRACT]" in prompt:
             return json.dumps(self._extract(prompt))
         return "{}"
@@ -122,6 +137,51 @@ class FakeProvider(LLMProvider):
             "llm_confidence": conf,
             "notes": f"term overlap {hits}/{len(set(terms))}",
         }
+
+    def _extract_playbook(self, prompt: str) -> list[dict]:
+        """Return playbook positions derived from the source text."""
+        items: list[dict] = []
+        for line in self._candidate_lines(prompt):
+            low = line.lower()
+            if len(line) < 20:
+                continue
+            if not any(h in low for h in _REQUIREMENT_HINTS):
+                continue
+            if "must not" in low or "shall not" in low or "prohibited" in low:
+                rule = "must_not_have"
+            elif "should" in low or "prefer" in low or "recommended" in low:
+                rule = "preferred"
+            else:
+                rule = "must_have"
+            items.append({
+                "text": line[:300],
+                "type": self._guess_type(low),
+                "priority": "Critical" if ("liability" in low or "net-" in low) else "High",
+                "rule": rule,
+            })
+        return items[:25]
+
+    def _extract_standard_terms(self, prompt: str) -> list[dict]:
+        """Return standard-terms items derived from the source text.
+
+        Uses a broader keyword set and a lower length threshold than requirement
+        extraction so that clause-title style paragraphs common in DOCX standard-
+        terms libraries are captured by the deterministic offline provider.
+        """
+        items: list[dict] = []
+        for line in self._candidate_lines(prompt):
+            low = line.lower()
+            if len(line) < 8:
+                continue
+            if not any(h in low for h in _STANDARD_TERM_HINTS):
+                continue
+            items.append({
+                "text": line[:300],
+                "type": self._guess_type(low),
+                "priority": "Critical" if "liability" in low else "High",
+                "contract_type": "services",
+            })
+        return items[:25]
 
     @staticmethod
     def _guess_type(low: str) -> str:

@@ -25,7 +25,7 @@ class EmailParser(DocumentParser):
     extensions = ("eml",)
     format = "eml"
 
-    def parse(self, data: bytes, filename: str) -> tuple[list[CIRBlock], dict, int]:
+    def parse(self, data: bytes, filename: str, progress_callback=None) -> tuple[list[CIRBlock], dict, int]:
         """Parse the email body and collect attachments.
 
         Returns:

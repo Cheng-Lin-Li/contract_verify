@@ -1,0 +1,14 @@
+# === contract_verify — demo API server dependencies =========================
+# Everything needed to run the web demo (FastAPI auth + upload->verify->report
+# ->queue), and nothing heavy. This pulls in the MVP core (the pipeline runs
+# in-process on upload) plus five small API packages. It deliberately does NOT
+# install Postgres / Qdrant / PaddleOCR — those back the 3-month skeletons only
+# (see requirements-3month.txt) and are not needed for the demo.
+
+-r requirements.txt            # MVP core: the verification pipeline the API runs
+
+fastapi>=0.111                 # API framework
+uvicorn[standard]>=0.30        # ASGI server (scripts/run_api.py)
+python-multipart>=0.0.9        # multipart parsing for contract/source uploads
+python-jose[cryptography]>=3.3 # JWT mint/verify
+bcrypt>=4.0                    # password hashing for the demo accounts

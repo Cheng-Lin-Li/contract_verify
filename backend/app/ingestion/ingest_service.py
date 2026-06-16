@@ -52,7 +52,13 @@ class IngestService:
                 return parser
         raise ValueError(f"No parser registered for '.{ext}' files")
 
-    def ingest_bytes(self, data: bytes, filename: str, role: DocRole) -> CIRDocument:
+    def ingest_bytes(
+        self,
+        data: bytes,
+        filename: str,
+        role: DocRole,
+        progress_callback=None,
+    ) -> CIRDocument:
         """Ingest in-memory bytes into a :class:`CIRDocument`.
 
         Email attachments are recursively ingested and their blocks appended,
@@ -62,10 +68,12 @@ class IngestService:
             data: Raw file bytes.
             filename: Original filename (drives parser selection).
             role: The :class:`DocRole` for this document.
+            progress_callback: Optional ``(current, total) -> None`` forwarded
+                to the format parser for page/section-level progress reporting.
         """
         with log_stage("ingest", doc_id=None, filename=filename, role=role.value):
             parser = self._parser_for(filename)
-            blocks, metadata, pages = parser.parse(data, filename)
+            blocks, metadata, pages = parser.parse(data, filename, progress_callback)
 
             # Recursively fold in email attachments.
             for att in metadata.pop("attachments", []) if isinstance(metadata, dict) else []:
@@ -80,13 +88,15 @@ class IngestService:
                     blk.block_id = f"b-{offset + j + 1:03d}"
                     blocks.append(blk)
 
+            meta = metadata if isinstance(metadata, dict) else {}
+            meta.setdefault("filename", filename)  # always available for viewers
             doc = CIRDocument(
                 role=role,
                 format=parser.format,
                 sha256=sha256_bytes(data),
                 pages=pages,
                 blocks=blocks,
-                metadata=metadata if isinstance(metadata, dict) else {},
+                metadata=meta,
             )
             log.info("ingested", extra={"doc_id": doc.doc_id, "format": doc.format,
                                         "blocks": len(doc.blocks)})

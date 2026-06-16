@@ -21,8 +21,18 @@ class DocxParser(DocumentParser):
     extensions = ("docx",)
     format = "docx"
 
-    def parse(self, data: bytes, filename: str) -> tuple[list[CIRBlock], dict, int]:
+    def parse(
+        self,
+        data: bytes,
+        filename: str,
+        progress_callback=None,
+    ) -> tuple[list[CIRBlock], dict, int]:
         """Extract paragraphs and tables in document order.
+
+        If ``progress_callback`` is provided it is called as
+        ``(current_section, total_sections)`` after every 10 paragraphs and
+        once per table, giving the caller per-item progress without flooding
+        it on very large documents. "Sections" here are paragraphs + tables.
 
         Raises:
             RuntimeError: If ``python-docx`` is not installed.
@@ -35,8 +45,12 @@ class DocxParser(DocumentParser):
             raise RuntimeError("python-docx is required to parse DOCX files") from exc
 
         document = docx.Document(io.BytesIO(data))
+        non_empty_paras = [p for p in document.paragraphs if p.text.strip()]
+        total_sections = len(non_empty_paras) + len(document.tables)
+
         blocks: list[CIRBlock] = []
         idx = 0
+        processed = 0
 
         for para in document.paragraphs:
             text = para.text.strip()
@@ -44,6 +58,9 @@ class DocxParser(DocumentParser):
                 continue
             blocks.append(CIRBlock(block_id=block_id(idx), type="paragraph", page=1, text=text))
             idx += 1
+            processed += 1
+            if progress_callback and processed % 10 == 0:
+                progress_callback(processed, total_sections)
 
         for table in document.tables:
             matrix = [[cell.text.strip() for cell in row.cells] for row in table.rows]
@@ -52,9 +69,15 @@ class DocxParser(DocumentParser):
                 CIRBlock(block_id=block_id(idx), type="table", page=1, text=flat, table=matrix)
             )
             idx += 1
+            processed += 1
+            if progress_callback:
+                progress_callback(processed, total_sections)
+
+        if progress_callback and total_sections > 0:
+            progress_callback(total_sections, total_sections)
 
         has_tracked = b"w:ins" in data or b"w:del" in data
         meta = {"filename": filename, "has_tracked_changes": has_tracked}
         log.info("docx_parsed", extra={"filename": filename, "blocks": len(blocks),
                                        "tracked_changes": has_tracked})
-        return blocks, meta, 1
+        return blocks, meta, total_sections or 1
