@@ -16,12 +16,15 @@
     "newVerification": "新規検証",
     "empty": "契約がありません。アップロードして開始してください。",
     "viewReport": "レポートを表示",
+    "delete": "削除",
+    "deleteConfirm": "「{{name}}」のレポートを削除しますか？この操作は取り消せません。",
     "col": {
       "contract": "契約書",
       "status": "ステータス",
       "coverage": "カバレッジ",
       "autoConfirm": "自動確認",
       "blocking": "ブロック",
+      "review": "レビュー",
       "submitted": "送信日時"
     },
     "status": {
@@ -29,6 +32,13 @@
       "running": "実行中",
       "completed": "完了",
       "failed": "失敗"
+    },
+    "reviewStatus": {
+      "pending": "保留中",
+      "in_review": "レビュー中",
+      "cleared": "承認済",
+      "rejected": "却下",
+      "escalated": "エスカレーション済"
     }
   },
   "login": {
@@ -58,6 +68,18 @@
       "done": "完了"
     }
   },
+  "viewer": {
+    "backToReport": "レポートに戻る",
+    "backToLibrary": "ライブラリに戻る",
+    "page": "ページ",
+    "pages": "ページ",
+    "blocks": "ブロック",
+    "cited": "引用済み",
+    "citedBlocks": "引用ブロック",
+    "pageLabel": "ページ {{page}}",
+    "empty": "コンテンツブロックが見つかりません。",
+    "notFound": "ドキュメントのコンテンツが利用できません。ドキュメント表示を有効にするには、契約書を再アップロードしてください。"
+  },
   "report": {
     "title": "検証レポート",
     "coverage": "カバレッジ",
@@ -85,7 +107,12 @@
       "3": "標準条項"
     },
     "blockingReasons": "ブロック理由",
-    "supersededBy": "{{id}} により上書き"
+    "supersededBy": "{{id}} により上書き",
+    "documents": "ドキュメント",
+    "contractDoc": "契約書",
+    "noSources": "取引ソース文書が利用できません（再検証で有効になります）。",
+    "backToContracts": "契約一覧に戻る",
+    "libraryWarningTitle": "警告：アップロードされたファイルがライブラリ参照文書と一致しています"
   },
   "queue": {
     "title": "弁護士キュー",
@@ -93,11 +120,28 @@
     "reason": "理由",
     "sla": "SLA",
     "risk": "リスク",
+    "referenceRule": "参照ルール",
+    "contractClause": "契約条項",
+    "noClause": "契約書に一致する条項が見つかりません",
+    "viewContract": "契約書を表示",
+    "viewReport": "レポートを表示",
+    "viewInContract": "契約書で確認",
+    "riskScore": "リスク {{score}}",
+    "itemCount": "{{count}} 件",
+    "itemCount_other": "{{count}} 件",
     "actions": {
       "approve": "承認",
       "reject": "却下",
       "escalate": "エスカレーション",
       "addToPlaybook": "プレイブックに追加"
+    },
+    "attorneyAction": {
+      "approve": "承認済",
+      "approve_with_edits": "承認済（修正あり）",
+      "request_clarification": "確認要求",
+      "reject": "却下済",
+      "escalate": "エスカレーション済",
+      "add_to_playbook": "プレイブックに追加済"
     }
   },
   "status": {
@@ -126,6 +170,7 @@
     "noItems": "まだ項目がありません",
     "expand": "続きを表示",
     "collapse": "閉じる",
+    "sourceDocuments": "ソースドキュメント",
     "col": {
       "id": "ID",
       "type": "タイプ",
@@ -151,7 +196,14 @@
       "scanning": "スキャン中…"
     },
     "done": "ライブラリを更新しました — {{count}} 件抽出済み。",
-    "error": "アップロード失敗: {{message}}"
+    "error": "アップロード失敗: {{message}}",
+    "duplicateUpload": "既にアップロード済みです：{{names}}。先に既存バージョンを削除してください。",
+    "deleteDoc": "削除",
+    "deleteDocConfirm": "「{{name}}」を削除しますか？抽出された {{count}} 件の項目もライブラリから削除されます。",
+    "deleteDocReferenced": "削除できません：このドキュメントの {{count}} 件の項目が既存の検証レポートで参照されています。先にそのレポートを削除してください。",
+    "deleteDocError": "削除失敗: {{message}}",
+    "groupBuiltIn": "組み込み",
+    "noSourceDoc": "追跡なしのアップロード"
   },
   "common": {
     "loading": "読み込み中…",

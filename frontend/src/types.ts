@@ -38,6 +38,8 @@ export interface Report {
   rows: ReportRow[];
   entities: Record<string, Entity[] | string | null>;
   attorney_queue: string[];
+  library_warnings: string[];
+  queue_decisions: Record<string, string>;
 }
 
 export interface JobOut {
@@ -52,6 +54,25 @@ export interface QueueItem {
   queue_id: string; contract_id: string; item_id: string; layer: number;
   status: string; reason: string; risk_score: number;
   sla_due_at?: string | null; sla_state: "ok" | "warn" | "breach"; assigned_to?: string | null;
+  attorney_action?: string | null;
+}
+
+export interface QueueClause {
+  block_id: string;
+  text: string;
+  page: number;
+}
+
+export interface QueueItemDetail extends QueueItem {
+  requirement_text: string;
+  matched_clauses: QueueClause[];
+}
+
+export interface ContractQueueGroup {
+  contract_id: string;
+  contract_filename: string;
+  risk_score: number;
+  items: QueueItemDetail[];
 }
 
 export type QueueAction =
@@ -73,6 +94,8 @@ export interface ContractSummary {
   error?: string | null;
   stage?: string | null;
   progress: number;
+  queue_pending?: number;
+  review_status?: string | null;
 }
 
 export interface LibraryItem {
@@ -81,4 +104,38 @@ export interface LibraryItem {
   type: string;
   priority: string;
   rule?: string | null;
+  source_doc_id?: string | null;
+}
+
+export interface CIRBlock {
+  block_id: string;
+  type: string;
+  page: number;
+  text: string;
+  table?: string[][] | null;
+  ocr_conf?: number | null;
+}
+
+export interface CIRDocument {
+  doc_id: string;
+  role: string;
+  format: string;
+  filename: string;
+  pages: number;
+  blocks: CIRBlock[];
+  metadata: Record<string, string>;
+}
+
+export interface ContractSourceInfo {
+  doc_id: string;
+  filename: string;
+  format: string;
+  role: string;
+}
+
+export interface LibraryDocInfo {
+  doc_id: string;
+  filename: string;
+  format: string;
+  role: string;
 }

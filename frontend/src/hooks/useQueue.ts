@@ -1,18 +1,22 @@
 import { useCallback, useEffect, useState } from "react";
 import { api } from "../api/client";
-import type { QueueAction, QueueItem } from "../types";
+import type { ContractQueueGroup, QueueAction } from "../types";
 
 export function useQueue() {
-  const [items, setItems] = useState<QueueItem[]>([]);
+  const [groups, setGroups] = useState<ContractQueueGroup[]>([]);
   const [loading, setLoading] = useState(true);
+
   const refresh = useCallback(() => {
     setLoading(true);
-    return api.listQueue().then(setItems).finally(() => setLoading(false));
+    return api.listQueue().then(setGroups).finally(() => setLoading(false));
   }, []);
+
   useEffect(() => { void refresh(); }, [refresh]);
-  const act = useCallback(async (id: string, action: QueueAction) => {
-    await api.actOnQueueItem(id, action);
+
+  const act = useCallback(async (queueId: string, action: QueueAction) => {
+    await api.actOnQueueItem(queueId, action);
     await refresh();
   }, [refresh]);
-  return { items, loading, act };
+
+  return { groups, loading, act };
 }

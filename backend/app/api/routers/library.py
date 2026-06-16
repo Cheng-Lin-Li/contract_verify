@@ -19,7 +19,7 @@ from pathlib import Path
 from typing import Optional
 
 import yaml
-from fastapi import APIRouter, BackgroundTasks, Depends, File, UploadFile
+from fastapi import APIRouter, BackgroundTasks, Depends, File, HTTPException, UploadFile
 
 from app.api import state_store
 from app.api.deps import get_current_user
@@ -112,11 +112,14 @@ def _run_library_ingest(
                 items = extractor.extract_playbook(doc, start_index=len(all_items))
             else:
                 items = extractor.extract_standard_terms(doc, start_index=len(all_items))
+            # Tag every item with the source document so we can group and delete later.
+            for item in items:
+                item["source_doc_id"] = doc.doc_id
             all_items.extend(items)
             log.info("library_doc_extracted",
                      extra={"job_id": job_id, "filename": fname, "items": len(items)})
 
-        # ---- Stage 3: write YAML ------------------------------------------
+        # ---- Stage 3: write YAML + persist CIRs for viewer ------------------
         out_path = Path(output_dir)
         out_path.mkdir(parents=True, exist_ok=True)
         yaml_path = out_path / f"uploaded_{job_id[:8]}.yaml"
@@ -127,6 +130,18 @@ def _run_library_ingest(
         log.info("library_saved",
                  extra={"job_id": job_id, "layer": layer,
                         "items": len(all_items), "path": str(yaml_path)})
+
+        doc_infos = []
+        for doc in all_docs:
+            state_store.save_cir(doc.doc_id, doc.to_dict())
+            doc_infos.append({
+                "doc_id": doc.doc_id,
+                "filename": (doc.metadata or {}).get("filename", doc.doc_id[:8]),
+                "format": doc.format,
+                "role": doc.role.value if hasattr(doc.role, "value") else str(doc.role),
+                "yaml_file": str(yaml_path),
+            })
+        state_store.append_library_docs(layer, doc_infos)
 
         _update_job(job_id, status="completed", stage="done", progress=1.0,
                     error=None, current_page=len(all_items), total_pages=len(all_items))
@@ -173,11 +188,17 @@ def upload_playbook(
 ) -> JobOut:
     """Upload one or more playbook files (PDF / DOCX).
 
-    The backend ingests each file page-by-page, then calls the LLM to extract
-    structured Layer-2 positions (text, type, priority, rule). Poll
-    ``GET /api/contracts/jobs/{job_id}`` for progress.
+    Returns 409 if any filename was already uploaded — delete the existing
+    version first. Poll ``GET /api/contracts/jobs/{job_id}`` for progress.
     """
     s = get_settings()
+    filenames = [f.filename or f"file_{i}" for i, f in enumerate(files)]
+    dupes = state_store.find_library_duplicate_filenames("playbook", filenames)
+    if dupes:
+        raise HTTPException(
+            status_code=409,
+            detail={"type": "duplicate", "filenames": dupes},
+        )
     return _start_library_job("playbook", files, s.library_playbook_dir, background_tasks)
 
 
@@ -189,10 +210,17 @@ def upload_standard_terms(
 ) -> JobOut:
     """Upload one or more standard-terms files (PDF / DOCX).
 
-    Same flow as ``/library/playbook`` but items carry ``contract_type`` instead
-    of ``rule`` and land in the standard-terms library.
+    Returns 409 if any filename was already uploaded. Same flow as
+    ``/library/playbook`` but items carry ``contract_type`` instead of ``rule``.
     """
     s = get_settings()
+    filenames = [f.filename or f"file_{i}" for i, f in enumerate(files)]
+    dupes = state_store.find_library_duplicate_filenames("standard_terms", filenames)
+    if dupes:
+        raise HTTPException(
+            status_code=409,
+            detail={"type": "duplicate", "filenames": dupes},
+        )
     return _start_library_job(
         "standard_terms", files, s.library_standard_terms_dir, background_tasks
     )
@@ -200,20 +228,45 @@ def upload_standard_terms(
 
 @router.get("/playbook", response_model=list[dict])
 def list_playbook(user=Depends(get_current_user)) -> list[dict]:
-    """List all playbook items currently in the library (demo + uploaded)."""
+    """List all playbook items currently in the library (demo + uploaded).
+
+    Demo items have ``source_doc_id=null``; uploaded items carry the doc_id of
+    the source document they were extracted from.
+    """
     from app.references.loaders import load_playbook
     s = get_settings()
     items: list[dict] = []
-    for d in (s.demo_playbook_dir, s.library_playbook_dir):
-        try:
-            for it in load_playbook(d):
-                items.append({
-                    "item_id": it.item_id, "text": it.text, "type": it.type,
-                    "priority": getattr(it.priority, "value", str(it.priority)),
-                    "rule": getattr(it, "rule", None),
-                })
-        except FileNotFoundError:
-            pass
+
+    # Demo items — loaded via the structured loader (no source_doc_id).
+    try:
+        for it in load_playbook(s.demo_playbook_dir):
+            items.append({
+                "item_id": it.item_id, "text": it.text, "type": it.type,
+                "priority": getattr(it.priority, "value", str(it.priority)),
+                "rule": getattr(it, "rule", None),
+                "source_doc_id": None,
+            })
+    except FileNotFoundError:
+        pass
+
+    # Uploaded items — read raw YAML to preserve source_doc_id.
+    lib_dir = Path(s.library_playbook_dir)
+    if lib_dir.exists():
+        for yaml_file in sorted(lib_dir.glob("*.y*ml")):
+            try:
+                raw = yaml.safe_load(yaml_file.read_text(encoding="utf-8")) or []
+                for it_dict in raw if isinstance(raw, list) else []:
+                    items.append({
+                        "item_id": it_dict.get("id") or it_dict.get("item_id", ""),
+                        "text": it_dict.get("text", ""),
+                        "type": it_dict.get("type", ""),
+                        "priority": it_dict.get("priority", ""),
+                        "rule": it_dict.get("rule"),
+                        "source_doc_id": it_dict.get("source_doc_id"),
+                    })
+            except Exception:  # noqa: BLE001
+                pass
+
     return items
 
 
@@ -222,17 +275,143 @@ def list_standard_terms(
     contract_type: Optional[str] = None,
     user=Depends(get_current_user),
 ) -> list[dict]:
-    """List all standard-terms items currently in the library (demo + uploaded)."""
+    """List all standard-terms items currently in the library (demo + uploaded).
+
+    Demo items have ``source_doc_id=null``; uploaded items carry the doc_id.
+    """
     from app.references.loaders import load_standard_terms
     s = get_settings()
     items: list[dict] = []
-    for d in (s.demo_standard_terms_dir, s.library_standard_terms_dir):
-        try:
-            for it in load_standard_terms(d, contract_type=contract_type):
-                items.append({
-                    "item_id": it.item_id, "text": it.text, "type": it.type,
-                    "priority": getattr(it.priority, "value", str(it.priority)),
-                })
-        except FileNotFoundError:
-            pass
+
+    # Demo items.
+    try:
+        for it in load_standard_terms(s.demo_standard_terms_dir, contract_type=contract_type):
+            items.append({
+                "item_id": it.item_id, "text": it.text, "type": it.type,
+                "priority": getattr(it.priority, "value", str(it.priority)),
+                "source_doc_id": None,
+            })
+    except FileNotFoundError:
+        pass
+
+    # Uploaded items — read raw YAML.
+    lib_dir = Path(s.library_standard_terms_dir)
+    if lib_dir.exists():
+        for yaml_file in sorted(lib_dir.glob("*.y*ml")):
+            try:
+                raw = yaml.safe_load(yaml_file.read_text(encoding="utf-8")) or []
+                for it_dict in raw if isinstance(raw, list) else []:
+                    ct = it_dict.get("contract_type")
+                    if contract_type and ct not in (None, contract_type):
+                        continue
+                    items.append({
+                        "item_id": it_dict.get("id") or it_dict.get("item_id", ""),
+                        "text": it_dict.get("text", ""),
+                        "type": it_dict.get("type", ""),
+                        "priority": it_dict.get("priority", ""),
+                        "source_doc_id": it_dict.get("source_doc_id"),
+                    })
+            except Exception:  # noqa: BLE001
+                pass
+
     return items
+
+
+@router.get("/playbook/documents", response_model=list[dict])
+def list_playbook_documents(user=Depends(get_current_user)) -> list[dict]:
+    """List uploaded playbook source documents (with doc_id for the viewer)."""
+    return state_store.load_library_docs("playbook")
+
+
+@router.get("/standard-terms/documents", response_model=list[dict])
+def list_standard_terms_documents(user=Depends(get_current_user)) -> list[dict]:
+    """List uploaded standard-terms source documents (with doc_id for the viewer)."""
+    return state_store.load_library_docs("standard_terms")
+
+
+# ---------------------------------------------------------------------------
+# Delete document endpoints
+# ---------------------------------------------------------------------------
+
+def _delete_library_document(layer: str, doc_id: str, lib_dir: str) -> dict:
+    """Core delete logic shared by both layer endpoints."""
+    docs = state_store.load_library_docs(layer)
+    doc_info = next((d for d in docs if d.get("doc_id") == doc_id), None)
+    if not doc_info:
+        raise HTTPException(status_code=404, detail="Document not found")
+
+    # Collect item IDs that belong to this document by scanning the YAML.
+    yaml_file_path = doc_info.get("yaml_file")
+    item_ids_in_doc: list[str] = []
+    if yaml_file_path:
+        try:
+            raw = yaml.safe_load(Path(yaml_file_path).read_text(encoding="utf-8")) or []
+            for it in raw if isinstance(raw, list) else []:
+                if it.get("source_doc_id") == doc_id:
+                    item_ids_in_doc.append(it.get("id") or it.get("item_id", ""))
+        except Exception:  # noqa: BLE001
+            pass
+
+    # Block deletion if any items are referenced in existing reports.
+    if item_ids_in_doc:
+        used = state_store.get_used_item_ids()
+        referenced = [iid for iid in item_ids_in_doc if iid in used]
+        if referenced:
+            raise HTTPException(
+                status_code=409,
+                detail={
+                    "type": "referenced",
+                    "count": len(referenced),
+                    "item_ids": referenced[:10],
+                },
+            )
+
+    # Remove items from YAML (or delete the file if it becomes empty).
+    if yaml_file_path:
+        try:
+            p = Path(yaml_file_path)
+            raw = yaml.safe_load(p.read_text(encoding="utf-8")) or []
+            remaining = [it for it in (raw if isinstance(raw, list) else [])
+                         if it.get("source_doc_id") != doc_id]
+            if remaining:
+                p.write_text(
+                    yaml.dump(remaining, allow_unicode=True, sort_keys=False),
+                    encoding="utf-8",
+                )
+            elif p.exists():
+                p.unlink()
+        except Exception:  # noqa: BLE001
+            pass
+
+    state_store.delete_library_doc_entry(layer, doc_id)
+    log.info("library_doc_deleted",
+             extra={"layer": layer, "doc_id": doc_id, "items_removed": len(item_ids_in_doc)})
+    return {"deleted": True, "items_removed": len(item_ids_in_doc)}
+
+
+@router.delete("/playbook/documents/{doc_id}")
+def delete_playbook_document(
+    doc_id: str,
+    user=Depends(get_current_user),
+) -> dict:
+    """Delete an uploaded playbook document and all items extracted from it.
+
+    Returns 409 if any of its items are referenced in an existing verification
+    report — resolve or delete those reports first.
+    """
+    s = get_settings()
+    return _delete_library_document("playbook", doc_id, s.library_playbook_dir)
+
+
+@router.delete("/standard-terms/documents/{doc_id}")
+def delete_standard_terms_document(
+    doc_id: str,
+    user=Depends(get_current_user),
+) -> dict:
+    """Delete an uploaded standard-terms document and all items extracted from it.
+
+    Returns 409 if any of its items are referenced in an existing verification
+    report — resolve or delete those reports first.
+    """
+    s = get_settings()
+    return _delete_library_document("standard_terms", doc_id, s.library_standard_terms_dir)

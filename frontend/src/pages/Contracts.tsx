@@ -1,5 +1,5 @@
 // Contracts dashboard: list all past verifications with status and scores.
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { api } from "../api/client";
@@ -64,6 +64,29 @@ function AutoConfirmCell({ value }: { value?: boolean | null }) {
 }
 
 // ---------------------------------------------------------------------------
+// Review status badge
+// ---------------------------------------------------------------------------
+
+const REVIEW_STYLE: Record<string, string> = {
+  pending: "bg-amber-100 text-amber-700",
+  in_review: "bg-amber-100 text-amber-700",
+  cleared: "bg-green-100 text-green-700",
+  rejected: "bg-red-100 text-red-700",
+  escalated: "bg-purple-100 text-purple-700",
+};
+
+function ReviewBadge({ status }: { status?: string | null }) {
+  const { t } = useTranslation();
+  if (!status) return <span className="text-slate-300">—</span>;
+  const cls = REVIEW_STYLE[status] ?? "bg-slate-100 text-slate-600";
+  return (
+    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${cls}`}>
+      {t(`contracts.reviewStatus.${status}`, { defaultValue: status })}
+    </span>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Date formatter
 // ---------------------------------------------------------------------------
 
@@ -83,6 +106,7 @@ export default function Contracts() {
   const navigate = useNavigate();
   const [contracts, setContracts] = useState<ContractSummary[]>([]);
   const [loading, setLoading] = useState(true);
+  const [deleting, setDeleting] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -107,6 +131,20 @@ export default function Contracts() {
 
     return () => { active = false; clearInterval(timer); };
   }, []);
+
+  async function handleDelete(e: React.MouseEvent, contractId: string, name: string) {
+    e.stopPropagation();
+    if (!window.confirm(t("contracts.deleteConfirm", { name }))) return;
+    setDeleting(contractId);
+    try {
+      await api.deleteContract(contractId);
+      setContracts((prev) => prev.filter((c) => c.contract_id !== contractId));
+    } catch {
+      // ignore — contract may already be gone
+    } finally {
+      setDeleting(null);
+    }
+  }
 
   return (
     <div className="space-y-4">
@@ -138,6 +176,7 @@ export default function Contracts() {
                 <th className="px-4 py-3">{t("contracts.col.coverage")}</th>
                 <th className="px-4 py-3">{t("contracts.col.autoConfirm")}</th>
                 <th className="px-4 py-3">{t("contracts.col.blocking")}</th>
+                <th className="px-4 py-3">{t("contracts.col.review")}</th>
                 <th className="px-4 py-3">{t("contracts.col.submitted")}</th>
                 <th className="px-4 py-3" />
               </tr>
@@ -176,18 +215,35 @@ export default function Contracts() {
                         ? <span className="inline-flex items-center rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700">{c.blocking_count}</span>
                         : <span className="text-slate-300">—</span>}
                     </td>
+                    <td className="px-4 py-3">
+                      <ReviewBadge status={c.review_status} />
+                      {!!c.queue_pending && (
+                        <span className="ml-1.5 text-xs text-amber-600">{c.queue_pending} pending</span>
+                      )}
+                    </td>
                     <td className="px-4 py-3 text-slate-400 tabular-nums whitespace-nowrap">
                       {fmtDate(c.submitted_at)}
                     </td>
                     <td className="px-4 py-3 text-right">
-                      {canView && (
-                        <button
-                          onClick={(e) => { e.stopPropagation(); navigate(`/report/${c.contract_id}`); }}
-                          className="rounded border border-slate-300 px-3 py-1 text-xs font-medium text-slate-600 hover:bg-slate-100"
-                        >
-                          {t("contracts.viewReport")}
-                        </button>
-                      )}
+                      <div className="flex items-center justify-end gap-2">
+                        {canView && (
+                          <button
+                            onClick={(e) => { e.stopPropagation(); navigate(`/report/${c.contract_id}`); }}
+                            className="rounded border border-slate-300 px-3 py-1 text-xs font-medium text-slate-600 hover:bg-slate-100"
+                          >
+                            {t("contracts.viewReport")}
+                          </button>
+                        )}
+                        {c.contract_id && (
+                          <button
+                            onClick={(e) => handleDelete(e, c.contract_id, displayName)}
+                            disabled={deleting === c.contract_id}
+                            className="rounded border border-red-200 px-3 py-1 text-xs font-medium text-red-600 hover:bg-red-50 disabled:opacity-50"
+                          >
+                            {deleting === c.contract_id ? "…" : t("contracts.delete")}
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 );

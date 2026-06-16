@@ -8,6 +8,7 @@ import Upload from "./pages/Upload";
 import Report from "./pages/Report";
 import Queue from "./pages/Queue";
 import Library from "./pages/Library";
+import DocumentViewer from "./pages/DocumentViewer";
 
 export default function App() {
   return (
@@ -20,6 +21,7 @@ export default function App() {
         <Route path="/report/:contractId" element={<Report />} />
         <Route path="/queue" element={<Queue />} />
         <Route path="/library" element={<Library />} />
+        <Route path="/document/:docId" element={<DocumentViewer />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

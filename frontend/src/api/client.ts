@@ -2,7 +2,8 @@
 // interceptor; every call maps 1:1 to an endpoint in app/api/routers.
 import axios, { AxiosInstance } from "axios";
 import type {
-  ContractSummary, Deployment, JobOut, LibraryItem,
+  CIRDocument, ContractQueueGroup, ContractSourceInfo, ContractSummary, Deployment,
+  JobOut, LibraryDocInfo, LibraryItem,
   QueueAction, QueueItem, Report, TokenResponse, User,
 } from "../types";
 
@@ -45,8 +46,8 @@ export const api = {
   async getReport(contractId: string): Promise<Report> {
     return (await http.get<Report>(`/api/contracts/${contractId}/report`)).data;
   },
-  async listQueue(): Promise<QueueItem[]> {
-    return (await http.get<QueueItem[]>("/api/queue")).data;
+  async listQueue(): Promise<ContractQueueGroup[]> {
+    return (await http.get<ContractQueueGroup[]>("/api/queue")).data;
   },
   async actOnQueueItem(queueId: string, action: QueueAction, comment?: string): Promise<QueueItem> {
     return (await http.post<QueueItem>(`/api/queue/${queueId}/action`, { action, comment })).data;
@@ -57,6 +58,18 @@ export const api = {
   async listContracts(): Promise<ContractSummary[]> {
     return (await http.get<ContractSummary[]>("/api/contracts")).data;
   },
+  async getContractSources(contractId: string): Promise<ContractSourceInfo[]> {
+    return (await http.get<ContractSourceInfo[]>(`/api/contracts/${contractId}/sources`)).data;
+  },
+  async deleteContract(contractId: string): Promise<void> {
+    await http.delete(`/api/contracts/${contractId}`);
+  },
+  async getDocument(docId: string): Promise<CIRDocument> {
+    return (await http.get<CIRDocument>(`/api/documents/${docId}`)).data;
+  },
+  async listLibraryDocuments(layer: "playbook" | "standard-terms"): Promise<LibraryDocInfo[]> {
+    return (await http.get<LibraryDocInfo[]>(`/api/library/${layer}/documents`)).data;
+  },
   async uploadLibraryFiles(layer: "playbook" | "standard-terms", files: FileList | File[]): Promise<JobOut> {
     const form = new FormData();
     Array.from(files).forEach((f) => form.append("files", f));
@@ -64,5 +77,11 @@ export const api = {
   },
   async listLibrary(layer: "playbook" | "standard-terms"): Promise<LibraryItem[]> {
     return (await http.get<LibraryItem[]>(`/api/library/${layer}`)).data;
+  },
+  async deleteLibraryDocument(
+    layer: "playbook" | "standard-terms",
+    docId: string,
+  ): Promise<{ deleted: boolean; items_removed: number }> {
+    return (await http.delete(`/api/library/${layer}/documents/${docId}`)).data;
   },
 };

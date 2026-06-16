@@ -104,6 +104,8 @@ class ReportOut(BaseModel):
     rows: list[ReportRowOut]
     entities: dict[str, list[EntityOut] | Optional[str]] = {}
     attorney_queue: list[str] = []
+    library_warnings: list[str] = []
+    queue_decisions: dict[str, str] = {}  # item_id → attorney_action for resolved items
 
 
 # --- attorney queue --------------------------------------------------------
@@ -120,6 +122,28 @@ class QueueItemOut(BaseModel):
     sla_due_at: Optional[datetime] = None
     sla_state: Literal["ok", "warn", "breach"] = "ok"
     assigned_to: Optional[str] = None
+    attorney_action: Optional[str] = None  # approve | reject | escalate | add_to_playbook
+
+
+class QueueClauseOut(BaseModel):
+    """A single contract block (clause) cited by a queue item."""
+    block_id: str
+    text: str
+    page: int = 1
+
+
+class QueueItemDetailOut(QueueItemOut):
+    """A queue item enriched with the reference rule and matched contract clauses."""
+    requirement_text: str = ""
+    matched_clauses: list[QueueClauseOut] = []
+
+
+class ContractQueueGroupOut(BaseModel):
+    """All flagged items for one contract, grouped for the attorney review UI."""
+    contract_id: str
+    contract_filename: str = ""
+    risk_score: int = 0
+    items: list[QueueItemDetailOut]
 
 
 class QueueActionRequest(BaseModel):
@@ -161,6 +185,35 @@ class AuditEventOut(BaseModel):
     confidence: Optional[float] = None
 
 
+class CIRBlockOut(BaseModel):
+    """One parsed block from a CIR document (paragraph / table / image)."""
+    block_id: str
+    type: str
+    page: int = 1
+    text: str = ""
+    table: Optional[list[list[str]]] = None
+    ocr_conf: Optional[float] = None
+
+
+class CIRDocumentOut(BaseModel):
+    """Parsed CIR for a single document — used by the block-level viewer."""
+    doc_id: str
+    role: str
+    format: str
+    filename: str
+    pages: int = 1
+    blocks: list[CIRBlockOut] = []
+    metadata: dict[str, str] = {}
+
+
+class ContractSourceInfo(BaseModel):
+    """Lightweight descriptor for a deal-source document attached to a contract."""
+    doc_id: str
+    filename: str
+    format: str
+    role: str
+
+
 class ContractSummaryOut(BaseModel):
     """Lightweight summary of one contract for the contracts-list view."""
     contract_id: str
@@ -175,6 +228,8 @@ class ContractSummaryOut(BaseModel):
     error: Optional[str] = None
     stage: Optional[str] = None
     progress: float = 0.0
+    queue_pending: int = 0  # unresolved attorney queue items
+    review_status: Optional[str] = None  # pending|in_review|cleared|rejected|escalated
 
 
 class DeploymentOut(BaseModel):

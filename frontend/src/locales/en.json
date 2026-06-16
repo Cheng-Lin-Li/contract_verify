@@ -16,12 +16,15 @@
     "newVerification": "New Verification",
     "empty": "No contracts yet. Upload one to get started.",
     "viewReport": "View Report",
+    "delete": "Delete",
+    "deleteConfirm": "Delete report for \"{{name}}\"? This cannot be undone.",
     "col": {
       "contract": "Contract",
       "status": "Status",
       "coverage": "Coverage",
       "autoConfirm": "Auto-confirm",
       "blocking": "Blocking",
+      "review": "Review",
       "submitted": "Submitted"
     },
     "status": {
@@ -29,6 +32,13 @@
       "running": "Running",
       "completed": "Completed",
       "failed": "Failed"
+    },
+    "reviewStatus": {
+      "pending": "Pending",
+      "in_review": "In Review",
+      "cleared": "Cleared",
+      "rejected": "Rejected",
+      "escalated": "Escalated"
     }
   },
   "login": {
@@ -58,6 +68,18 @@
       "done": "Done"
     }
   },
+  "viewer": {
+    "backToReport": "Back to report",
+    "backToLibrary": "Back to library",
+    "page": "page",
+    "pages": "pages",
+    "blocks": "blocks",
+    "cited": "cited",
+    "citedBlocks": "Cited blocks",
+    "pageLabel": "Page {{page}}",
+    "empty": "No content blocks found.",
+    "notFound": "Document content is not available. Please re-upload the contract to enable document viewing."
+  },
   "report": {
     "title": "Verification report",
     "coverage": "Coverage",
@@ -85,19 +107,41 @@
       "3": "Standard terms"
     },
     "blockingReasons": "Blocking reasons",
-    "supersededBy": "superseded by {{id}}"
+    "supersededBy": "superseded by {{id}}",
+    "documents": "Documents",
+    "contractDoc": "Contract",
+    "noSources": "Deal source documents not available (re-run verification to enable).",
+    "backToContracts": "Back to contracts",
+    "libraryWarningTitle": "Warning: uploaded file matches a library reference document"
   },
   "queue": {
-    "title": "Attorney queue",
+    "title": "Attorney Queue",
     "empty": "No items awaiting review.",
     "reason": "Reason",
     "sla": "SLA",
     "risk": "Risk",
+    "referenceRule": "Reference rule",
+    "contractClause": "Contract clause",
+    "noClause": "No matching clause found in the contract",
+    "viewContract": "View Contract",
+    "viewReport": "View Report",
+    "viewInContract": "View in contract",
+    "riskScore": "Risk {{score}}",
+    "itemCount": "{{count}} item",
+    "itemCount_other": "{{count}} items",
     "actions": {
       "approve": "Approve",
       "reject": "Reject",
       "escalate": "Escalate",
       "addToPlaybook": "Add to playbook"
+    },
+    "attorneyAction": {
+      "approve": "Approved",
+      "approve_with_edits": "Approved (with edits)",
+      "request_clarification": "Clarification requested",
+      "reject": "Rejected",
+      "escalate": "Escalated",
+      "add_to_playbook": "Added to playbook"
     }
   },
   "status": {
@@ -126,6 +170,7 @@
     "noItems": "No items loaded yet",
     "expand": "more",
     "collapse": "less",
+    "sourceDocuments": "Source documents",
     "col": {
       "id": "ID",
       "type": "Type",
@@ -151,7 +196,14 @@
       "scanning": "Scanning…"
     },
     "done": "Library updated — {{count}} items extracted.",
-    "error": "Upload failed: {{message}}"
+    "error": "Upload failed: {{message}}",
+    "duplicateUpload": "Already uploaded: {{names}}. Delete the existing version first.",
+    "deleteDoc": "Delete",
+    "deleteDocConfirm": "Delete \"{{name}}\"? Its {{count}} extracted item(s) will be removed from the library.",
+    "deleteDocReferenced": "Cannot delete: {{count}} item(s) from this document are referenced in existing verification reports. Delete those reports first.",
+    "deleteDocError": "Delete failed: {{message}}",
+    "groupBuiltIn": "Built-in",
+    "noSourceDoc": "Untracked upload"
   },
   "common": {
     "loading": "Loading…",
