@@ -36,6 +36,24 @@ def test_reconcile_supersedes_conflicting_payment_terms():
     assert superseded_status_for("r-2", result) is None
 
 
+def test_reconcile_supersedes_multiple_conflicting_payment_terms():
+    # Three+ conflicting payment terms across multiple emails: every earlier
+    # term must be marked superseded by the FINAL winner, not the immediately
+    # preceding one (the pairwise-chaining bug).
+    items = [
+        _req("r-1", "Payment terms shall be net-30 days.", "payment"),
+        _req("r-2", "Updated: payment terms shall be net-45 days.", "payment"),
+        _req("r-3", "Final: payment terms shall be net-60 days.", "payment"),
+    ]
+    result = reconcile_requirements(items)
+    # The final net-60 term wins; both earlier terms point to it.
+    assert result.superseded.get("r-1") == "r-3"
+    assert result.superseded.get("r-2") == "r-3"
+    assert superseded_status_for("r-1", result) is not None
+    assert superseded_status_for("r-2", result) is not None
+    assert superseded_status_for("r-3", result) is None
+
+
 def test_reconcile_keeps_non_conflicting_terms():
     items = [
         _req("r-1", "Payment net-30.", "payment"),
