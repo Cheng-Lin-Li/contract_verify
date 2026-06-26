@@ -68,21 +68,26 @@ def reconcile_requirements(items: list[ReferenceItem]) -> ReconcileResult:
         seen[key] = item
         deduped.append(item)
 
-    # Basic supersession: conflicting payment 'net-N' terms -> later wins.
-    by_net: dict[str, ReferenceItem] = {}
-    for item in deduped:
-        n = _net_term(item.text)
-        if n is None or item.type != "payment":
-            continue
-        prior = by_net.get("payment")
-        if prior is not None and _net_term(prior.text) != n:
-            # Later item supersedes earlier conflicting payment term.
-            result.superseded[prior.item_id] = item.item_id
+    # Basic supersession: conflicting payment 'net-N' terms -> the final
+    # (last-in-source-order) term wins, and *every* earlier conflicting term is
+    # marked superseded by that single winner. We collect all candidates first
+    # so three+ terms across multiple emails resolve to one winner instead of
+    # chaining pairwise (where each term would only point at its predecessor).
+    payment_terms = [
+        (item, n)
+        for item in deduped
+        if item.type == "payment" and (n := _net_term(item.text)) is not None
+    ]
+    if len(payment_terms) > 1:
+        winner, winner_n = payment_terms[-1]
+        for prior, prior_n in payment_terms[:-1]:
+            if prior_n == winner_n:
+                continue  # same term, not a conflict
+            result.superseded[prior.item_id] = winner.item_id
             result.notes.append(
-                f"{item.item_id} (net-{n}) supersedes {prior.item_id} "
-                f"(net-{_net_term(prior.text)})"
+                f"{winner.item_id} (net-{winner_n}) supersedes {prior.item_id} "
+                f"(net-{prior_n})"
             )
-        by_net["payment"] = item
 
     result.items = deduped
     log.info("reconciled", extra={"in": len(items), "out": len(deduped),
