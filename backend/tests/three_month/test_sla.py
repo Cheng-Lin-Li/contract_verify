@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta
 
-import pytest
 
 from app.queue import sla
 from tests.three_month._spec import skip_until_implemented

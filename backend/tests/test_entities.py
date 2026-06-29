@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from app.core.enums import DocRole, Layer
+from app.core.enums import DocRole
 from app.core.models import CIRBlock, CIRDocument
 from app.references.entities import (
     extract_contract_entities,

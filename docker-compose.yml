@@ -1,0 +1,54 @@
+# 3-month backing services for contract_verify.
+#
+#   docker compose up -d                # start Postgres + Qdrant (+ MinIO)
+#   PG_TEST_DSN=postgresql+asyncpg://cv:cv@localhost:5432/cv_test \
+#     RUN_3MONTH=1 pytest backend/tests/three_month/test_postgres_store.py
+#   RUN_3MONTH=1 pytest backend/tests/three_month/test_retrieval_qdrant.py
+#
+# All services are optional for the MVP CLI/demo; enable a backend by pointing
+# the matching .env setting at it (DATABASE_URL / QDRANT_URL+RETRIEVER=qdrant /
+# BLOB_DIR=s3://...). Ollama (local LLM + embeddings) is expected to run on the
+# host (http://localhost:11434).
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: cv
+      POSTGRES_PASSWORD: cv
+      POSTGRES_DB: cv_test
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U cv"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  qdrant:
+    image: qdrant/qdrant:latest
+    ports:
+      - "6333:6333"   # REST
+      - "6334:6334"   # gRPC
+    volumes:
+      - qdrantdata:/qdrant/storage
+
+  # Optional S3-compatible object store for hybrid blob residency (BLOB_DIR=s3://...).
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: cv
+      MINIO_ROOT_PASSWORD: cv-secret
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - miniodata:/data
+
+volumes:
+  pgdata:
+  qdrantdata:
+  miniodata:

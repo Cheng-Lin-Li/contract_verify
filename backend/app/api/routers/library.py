@@ -50,6 +50,7 @@ def _run_library_ingest(
     layer: str,
     uploads: list[tuple[str, bytes]],
     output_dir: str,
+    locale: Optional[str] = None,
 ) -> None:
     """Background task: ingest → LLM extract → write YAML.
 
@@ -58,6 +59,8 @@ def _run_library_ingest(
         layer:      ``"playbook"`` or ``"standard_terms"``.
         uploads:    ``[(filename, raw_bytes), ...]`` pairs from the multipart upload.
         output_dir: Directory where the resulting YAML is written.
+        locale:     Prompt-catalog locale for extraction (e.g. ``ja``); when
+            ``None``, auto-detected from the uploaded documents' language.
     """
     total_files = len(uploads)
     ingest_svc = IngestService()
@@ -99,7 +102,16 @@ def _run_library_ingest(
                     current_page=0, total_pages=total_files, stage_file="")
 
         settings = get_settings()
-        extractor = LibraryExtractor(get_provider(settings))
+        effective_locale = locale
+        if effective_locale is None and settings.auto_detect_locale and all_docs:
+            from app.i18n.lang_detect import detect_locale
+            sample = "\n".join(d.full_text() for d in all_docs)
+            effective_locale = detect_locale(
+                sample, supported=settings.supported_locale_list(),
+                default=settings.default_locale)
+            log.info("library_locale_detected",
+                     extra={"job_id": job_id, "locale": effective_locale})
+        extractor = LibraryExtractor(get_provider(settings), locale=effective_locale)
         all_items: list[dict] = []
 
         for doc_idx, doc in enumerate(all_docs):
@@ -156,6 +168,7 @@ def _start_library_job(
     files: list[UploadFile],
     output_dir: str,
     background_tasks: BackgroundTasks,
+    locale: Optional[str] = None,
 ) -> JobOut:
     """Read uploads, create the initial job record, enqueue the background task."""
     uploads = [(f.filename or f"file_{i}", f.file.read()) for i, f in enumerate(files)]
@@ -172,7 +185,7 @@ def _start_library_job(
         "stage_file": uploads[0][0] if uploads else "",
     }
     state_store.save_job(job)
-    background_tasks.add_task(_run_library_ingest, job_id, layer, uploads, output_dir)
+    background_tasks.add_task(_run_library_ingest, job_id, layer, uploads, output_dir, locale)
     return JobOut(**job)
 
 
@@ -183,6 +196,7 @@ def _start_library_job(
 @router.post("/playbook", response_model=JobOut)
 def upload_playbook(
     files: list[UploadFile] = File(...),
+    locale: Optional[str] = None,
     background_tasks: BackgroundTasks = BackgroundTasks(),
     user=Depends(get_current_user),
 ) -> JobOut:
@@ -190,6 +204,8 @@ def upload_playbook(
 
     Returns 409 if any filename was already uploaded — delete the existing
     version first. Poll ``GET /api/contracts/jobs/{job_id}`` for progress.
+    ``locale`` selects the extraction prompt language (e.g. ``ja``); when
+    omitted it is auto-detected from the uploaded documents.
     """
     s = get_settings()
     filenames = [f.filename or f"file_{i}" for i, f in enumerate(files)]
@@ -199,12 +215,14 @@ def upload_playbook(
             status_code=409,
             detail={"type": "duplicate", "filenames": dupes},
         )
-    return _start_library_job("playbook", files, s.library_playbook_dir, background_tasks)
+    return _start_library_job("playbook", files, s.library_playbook_dir,
+                              background_tasks, locale)
 
 
 @router.post("/standard-terms", response_model=JobOut)
 def upload_standard_terms(
     files: list[UploadFile] = File(...),
+    locale: Optional[str] = None,
     background_tasks: BackgroundTasks = BackgroundTasks(),
     user=Depends(get_current_user),
 ) -> JobOut:
@@ -212,6 +230,7 @@ def upload_standard_terms(
 
     Returns 409 if any filename was already uploaded. Same flow as
     ``/library/playbook`` but items carry ``contract_type`` instead of ``rule``.
+    ``locale`` selects the extraction prompt language (auto-detected if omitted).
     """
     s = get_settings()
     filenames = [f.filename or f"file_{i}" for i, f in enumerate(files)]
@@ -222,7 +241,7 @@ def upload_standard_terms(
             detail={"type": "duplicate", "filenames": dupes},
         )
     return _start_library_job(
-        "standard_terms", files, s.library_standard_terms_dir, background_tasks
+        "standard_terms", files, s.library_standard_terms_dir, background_tasks, locale
     )
 
 

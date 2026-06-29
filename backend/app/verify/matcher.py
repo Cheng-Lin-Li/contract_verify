@@ -19,7 +19,7 @@ from app.logging_setup import get_logger, log_stage
 from app.prompts.loader import PromptCatalog, load_catalog
 from app.references.reconcile import ReconcileResult
 from app.references.entities import value_conflict
-from app.retrieval.retriever import Candidate, DirectRetriever, Retriever
+from app.retrieval.retriever import Candidate, Retriever, get_retriever
 from app.scoring.confidence import ConfidenceInputs, confidence_score
 
 log = get_logger("verify.matcher")
@@ -40,18 +40,22 @@ class VerificationMatcher:
         retriever: Optional[Retriever] = None,
         catalog: Optional[PromptCatalog] = None,
         top_k: int = 5,
+        locale: Optional[str] = None,
     ) -> None:
         """Initialise the matcher.
 
         Args:
             provider: LLM provider for the verifier calls.
-            retriever: Clause retriever; defaults to :class:`DirectRetriever`.
-            catalog: Prompt catalog; defaults to the configured locale's catalog.
+            retriever: Clause retriever; defaults to the configured backend
+                (``RETRIEVER``): lexical :class:`DirectRetriever` or Qdrant.
+            catalog: Prompt catalog; defaults to the ``locale`` catalog.
             top_k: Number of candidate clauses to send to the verifier.
+            locale: Prompt-catalog locale (e.g. ``ja``); defaults to the
+                configured ``DEFAULT_LOCALE``. Ignored when ``catalog`` is given.
         """
         self.provider = provider
-        self.retriever = retriever or DirectRetriever()
-        self.catalog = catalog or load_catalog()
+        self.retriever = retriever or get_retriever()
+        self.catalog = catalog or load_catalog(locale)
         self.top_k = top_k
 
     def _render_clauses(self, candidates: list[Candidate]) -> str:

@@ -67,3 +67,24 @@ class DirectRetriever(Retriever):
             scored.append(Candidate(block=block, score=round(score, 4)))
         scored.sort(key=lambda c: c.score, reverse=True)
         return scored[:top_k]
+
+
+def get_retriever(settings: object | None = None) -> Retriever:
+    """Select the retriever from settings (``RETRIEVER=direct|qdrant``).
+
+    ``direct`` (default) is the dependency-free lexical retriever; ``qdrant`` is
+    the dense Qdrant retriever (3-month), constructed with the configured
+    embedder. Both implement :class:`Retriever`, so callers don't change.
+    """
+    if settings is None:
+        from app.config import get_settings
+        settings = get_settings()
+    if getattr(settings, "retriever", "direct").lower() == "qdrant":
+        from app.knowledge.embeddings import get_embedder
+        from app.knowledge.qdrant_store import QdrantRetriever
+        return QdrantRetriever(
+            url=getattr(settings, "qdrant_url", "http://localhost:6333"),
+            embedder=get_embedder(settings),
+            collection=getattr(settings, "qdrant_collection", "clauses"),
+        )
+    return DirectRetriever()

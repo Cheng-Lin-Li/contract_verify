@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import pytest
 
 from app.queue import routing
 from tests.three_month._spec import skip_until_implemented

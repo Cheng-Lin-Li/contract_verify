@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import tempfile
 import uuid
-from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Optional
 
@@ -19,8 +18,7 @@ from app.api.schemas import (
 from app.config import get_settings
 from app.core.enums import DocRole
 from app.ingestion.ingest_service import IngestService
-from app.pipeline import VerificationPipeline
-from app.references.loaders import load_playbook, load_standard_terms
+from app.services import jobs
 
 router = APIRouter()
 
@@ -42,17 +40,6 @@ def _ensure(d: str) -> str:
     return d
 
 
-def _load_merged(loader_fn, *dirs, **kwargs):
-    """Load and merge reference items from multiple directories, skipping missing ones."""
-    items = []
-    for d in dirs:
-        try:
-            items.extend(loader_fn(d, **kwargs))
-        except FileNotFoundError:
-            pass
-    return items
-
-
 def _payload_to_report_out(contract_id: str, payload: dict) -> ReportOut:
     rep = payload["report"]
     scores = ScoreSummary(
@@ -71,91 +58,6 @@ def _payload_to_report_out(contract_id: str, payload: dict) -> ReportOut:
 
 
 # ---------------------------------------------------------------------------
-# Background pipeline task
-# ---------------------------------------------------------------------------
-
-def _run_pipeline_task(
-    job_id: str,
-    cpath: str,
-    spaths: list[str],
-    contract_type: Optional[str],
-    playbook_items: list,
-    std_items: list,
-) -> None:
-    """Run the full verification pipeline and persist results to the state store."""
-
-    def _upd(stage: str, progress: float, stage_file: str = "") -> None:
-        job = state_store.load_job(job_id) or {}
-        job.update(status="running", stage=stage,
-                   progress=round(progress, 3), stage_file=stage_file or "")
-        state_store.save_job(job)
-
-    _upd("ingest_contract", 0.0, Path(cpath).name)
-    try:
-        s = get_settings()
-        result = VerificationPipeline().run(
-            contract_path=cpath,
-            deal_source_paths=spaths,
-            playbook_dir=s.demo_playbook_dir,
-            standard_terms_dir=s.demo_standard_terms_dir,
-            contract_type=contract_type,
-            preloaded_playbook=playbook_items,
-            preloaded_std_terms=std_items,
-            progress_fn=_upd,
-        )
-        contract_id = result.contract.doc_id
-        entities = (result.contract.metadata or {}).get("entities", {})
-        state_store.save_report(
-            contract_id, {"report": result.report.to_dict(), "entities": entities}
-        )
-
-        rep = result.report
-        row_by_id = {r.item_id: r for r in rep.rows}
-        sla_due = datetime.now(tz=timezone.utc) + timedelta(days=3)
-        q_items = []
-        for item_id in rep.attorney_queue:
-            row = row_by_id.get(item_id)
-            q_items.append({
-                "queue_id": f"{contract_id}:{item_id}",
-                "contract_id": contract_id,
-                "item_id": item_id,
-                "layer": row.layer if row else 0,
-                "status": row.status if row else "",
-                "reason": (row.notes if row else "") or "flagged",
-                "risk_score": rep.risk_score,
-                "sla_due_at": sla_due.isoformat(),
-                "sla_state": "ok",
-                "assigned_to": None,
-                "resolved": False,
-            })
-        if q_items:
-            state_store.save_queue_items(q_items)
-
-        # Persist CIR documents so the viewer can display block-level content.
-        state_store.save_cir(contract_id, result.contract.to_dict())
-        sources_info = []
-        for doc in result.deal_docs:
-            state_store.save_cir(doc.doc_id, doc.to_dict())
-            sources_info.append({
-                "doc_id": doc.doc_id,
-                "filename": (doc.metadata or {}).get("filename", doc.doc_id[:8]),
-                "format": doc.format,
-                "role": doc.role.value if hasattr(doc.role, "value") else str(doc.role),
-            })
-        state_store.save_contract_sources(contract_id, sources_info)
-
-        job = state_store.load_job(job_id) or {}
-        job.update(status="completed", stage="done", progress=1.0,
-                   contract_id=contract_id, error=None, stage_file="")
-        state_store.save_job(job)
-
-    except Exception as exc:  # noqa: BLE001
-        job = state_store.load_job(job_id) or {}
-        job.update(status="failed", stage="failed", error=str(exc))
-        state_store.save_job(job)
-
-
-# ---------------------------------------------------------------------------
 # Endpoints
 # ---------------------------------------------------------------------------
 
@@ -171,45 +73,28 @@ def create_contract(
     contract: UploadFile = File(...),
     sources: list[UploadFile] = File(default=[]),
     contract_type: Optional[str] = None,
+    locale: Optional[str] = None,
     user=Depends(get_current_user),
 ) -> JobOut:
     """Accept a contract + deal sources, enqueue verification, return a job to poll.
 
     The pipeline runs in a FastAPI background task. The SPA polls
     ``GET /api/contracts/jobs/{job_id}`` for stage/progress updates, then loads
-    the report once status reaches ``completed``.
+    the report once status reaches ``completed``. ``locale`` selects the
+    prompt-catalog language for extraction/verification (e.g. ``ja``).
     """
-    s = get_settings()
     cpath, spaths = _save_uploads(contract, sources)
-    playbook_items = _load_merged(load_playbook, s.demo_playbook_dir, s.library_playbook_dir)
-    std_items = _load_merged(
-        load_standard_terms, s.demo_standard_terms_dir, s.library_standard_terms_dir,
-        contract_type=contract_type,
+    job_id = jobs.create_job(
+        cpath, spaths, contract_type=contract_type,
+        contract_filename=contract.filename or "", locale=locale,
     )
-
-    job_id = uuid.uuid4().hex
-    job: dict = {
-        "job_id": job_id,
-        "contract_id": "",
-        "status": "queued",
-        "progress": 0.0,
-        "error": None,
-        "stage": "queued",
-        "current_page": None,
-        "total_pages": None,
-        "stage_file": contract.filename or "",
-        "contract_filename": contract.filename or "",
-    }
-    state_store.save_job(job)
-    background_tasks.add_task(
-        _run_pipeline_task, job_id, cpath, spaths, contract_type, playbook_items, std_items
-    )
-    return JobOut(**job)
+    background_tasks.add_task(jobs.run_job, job_id)
+    return JobOut(**jobs.get_job_status(job_id))
 
 
 @router.get("/contracts/jobs/{job_id}", response_model=JobOut)
 def get_job(job_id: str, user=Depends(get_current_user)) -> JobOut:
-    job = state_store.load_job(job_id)
+    job = jobs.get_job_status(job_id)
     if job is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Unknown job")
     return JobOut(**job)

@@ -19,6 +19,9 @@ def create_app() -> FastAPI:
     app = FastAPI(title="contract_verify", version=settings.app_version)
     configure_cors(app)
     register_routers(app)
+    if settings.seed_demo_data:
+        from app.api.demo_seed import seed_demo_data
+        seed_demo_data()
     return app
 
 

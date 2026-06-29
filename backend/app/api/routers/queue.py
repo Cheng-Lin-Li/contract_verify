@@ -12,10 +12,16 @@ from app.api.schemas import (
     ContractQueueGroupOut, QueueActionRequest, QueueClauseOut,
     QueueItemDetailOut, QueueItemOut,
 )
+from app.queue.attorney_queue import AttorneyQueue
 
 router = APIRouter()
 
 _REVIEWERS = ("attorney", "gc_team", "admin")
+
+
+def _queue() -> AttorneyQueue:
+    """The attorney queue backed by the demo state store."""
+    return AttorneyQueue(state_store)
 
 
 def _sla_state(sla_due_at: str | None) -> str:
@@ -107,8 +113,7 @@ def _enrich_and_group(raw_items: list[dict]) -> list[ContractQueueGroupOut]:
 @router.get("", response_model=list[ContractQueueGroupOut])
 def list_queue(user=Depends(require_role(*_REVIEWERS))) -> list[ContractQueueGroupOut]:
     """Return unresolved queue items grouped by contract, enriched with clause text."""
-    raw = [it for it in state_store.load_queue_items() if not it.get("resolved")]
-    return _enrich_and_group(raw)
+    return _enrich_and_group(_queue().list())
 
 
 @router.post("/{queue_id}/action", response_model=QueueItemOut)
@@ -116,9 +121,8 @@ def act_on_item(
     queue_id: str, payload: QueueActionRequest,
     user=Depends(require_role(*_REVIEWERS)),
 ) -> QueueItemOut:
-    updated = state_store.update_queue_item(
-        queue_id, resolved=True, assigned_to=user.username,
-        attorney_action=payload.action,
+    updated = _queue().apply_action(
+        queue_id, payload.action, actor=user.username, comment=payload.comment,
     )
     if updated is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Unknown queue item")

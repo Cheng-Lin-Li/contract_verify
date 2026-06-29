@@ -60,7 +60,8 @@ def get_ocr_engine(settings: Optional[Settings] = None) -> OCREngine:
         return TesseractEngine()
     if engine in ("paddleocr", "pp-structure"):
         # 3-month scope (TDD §4.3): PaddleOCR/PP-Structure for tables & images.
-        raise ValueError(f"OCR engine '{engine}' is delivered in the 3-month build")
+        from app.ingestion.ocr.paddle_engine import PaddleOCREngine
+        return PaddleOCREngine()
     if engine in ("paddleocr_vl", "easyocr", "google_vision"):
         # Backlog (TDD §20).
         raise ValueError(f"OCR engine '{engine}' is on the backlog")

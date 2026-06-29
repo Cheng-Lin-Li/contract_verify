@@ -1,0 +1,107 @@
+name: CI
+
+# Lint + full test suite on every push and pull request.
+on:
+  push:
+  pull_request:
+
+# Cancel superseded runs on the same ref so only the latest push is tested.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: Backend — ruff + pytest (incl. 3-month)
+    runs-on: ubuntu-latest
+
+    # Live services the 3-month integration specs verify against.
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: cv
+          POSTGRES_PASSWORD: cv
+          POSTGRES_DB: cv_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U cv"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+      qdrant:
+        image: qdrant/qdrant:latest
+        ports:
+          - 6333:6333
+
+    env:
+      # Tests never call a real model; the deterministic provider keeps CI hermetic.
+      LLM_PROVIDER: fake
+      # Point the integration specs at the service containers.
+      PG_TEST_DSN: postgresql+asyncpg://cv:cv@localhost:5432/cv_test
+      QDRANT_URL: http://localhost:6333
+      SUPPORTED_LOCALES: en,ja
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          # MVP core + demo API (FastAPI/JWT/bcrypt), then the 3-month test deps.
+          # PaddleOCR/paddlepaddle are intentionally excluded — no test needs them.
+          pip install -r backend/requirements-api.txt
+          pip install \
+            "SQLAlchemy[asyncio]>=2.0" "asyncpg>=0.29" greenlet \
+            "qdrant-client>=1.9" passlib \
+            pytest pytest-asyncio "httpx>=0.27" ruff
+
+      - name: Lint (ruff)
+        run: ruff check .
+
+      - name: Wait for Qdrant
+        run: |
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:6333/readyz; then echo "qdrant ready"; exit 0; fi
+            sleep 2
+          done
+          echo "Qdrant did not become ready in time" >&2
+          exit 1
+
+      - name: Run tests (MVP + 3-month)
+        env:
+          RUN_3MONTH: "1"
+        run: pytest
+
+  frontend:
+    name: Frontend — type-check + vitest
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build (tsc type-check + vite build)
+        run: npm run build
+
+      - name: Unit tests (vitest)
+        run: npm test

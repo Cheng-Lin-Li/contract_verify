@@ -25,6 +25,7 @@ def api_client(tmp_path, monkeypatch):
     monkeypatch.setenv("REPORTS_DIR", str(tmp_path / "reports"))
     monkeypatch.setenv("UPLOADS_DIR", str(tmp_path / "uploads"))
     monkeypatch.setenv("SECRET_KEY", "test-secret")
+    monkeypatch.setenv("LLM_PROVIDER", "fake")  # upload runs the pipeline off-thread
     from app.config import reset_settings_cache
     reset_settings_cache()
     from app.api.auth_store import seed_demo_users
