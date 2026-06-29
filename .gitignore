@@ -39,3 +39,6 @@ htmlcov/
 # Node (frontend, 3-month build)
 node_modules/
 frontend/dist/
+
+# Local-only AI-assistant / dev instruction notes (kept on disk, out of git)
+*CLAUDE*.md
