@@ -1,0 +1,46 @@
+{
+  "layer": {
+    "1": "Business Requirements",
+    "2": "Internal Playbook",
+    "3": "Standard Terms"
+  },
+  "status": {
+    "Covered": "Covered",
+    "Partial": "Partial",
+    "Missing": "Missing",
+    "Contradicted": "Contradicted",
+    "Superseded": "Superseded",
+    "Compliant": "Compliant",
+    "Deviation": "Deviation",
+    "Violation": "Violation",
+    "Present": "Present",
+    "Non-standard": "Non-standard"
+  },
+  "score": {
+    "coverage": "Coverage Score",
+    "risk": "Risk Score",
+    "playbook": "Playbook Compliance",
+    "standard": "Standard-Terms Completeness",
+    "confidence": "Confidence Score"
+  },
+  "gate": {
+    "auto_confirm": "Auto-confirm",
+    "blocked": "Blocked pending attorney review",
+    "critical_missing": "Critical requirement {item} is {status}",
+    "violation": "Playbook violation on {item}",
+    "core_missing": "Core standard protection {item} ({type}) is Missing",
+    "low_confidence": "Low confidence ({confidence}) on {item}",
+    "risk_over_threshold": "Risk score {risk} at or above attorney threshold {threshold}"
+  },
+  "queue": {
+    "sla_ok": "On track",
+    "sla_warn": "Due soon",
+    "sla_breach": "Overdue",
+    "assigned_to": "Assigned to {user}"
+  },
+  "error": {
+    "unauthorized": "Authentication required",
+    "forbidden": "You do not have permission to perform this action",
+    "not_found": "{resource} not found"
+  }
+}

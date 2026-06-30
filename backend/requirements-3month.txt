@@ -22,10 +22,13 @@ asyncpg>=0.29
 alembic>=1.13
 
 # --- Vector retrieval ---
-qdrant-client>=1.9
-# Local embeddings runtime is provided via Ollama (bge-m3); sentence-transformers
-# is optional if you prefer in-process embedding:
-# sentence-transformers>=3.0
+qdrant-client>=1.10           # query_points + RRF fusion (hybrid search)
+# Local embeddings runtime is provided via Ollama (bge-m3).
+# Hybrid dense+sparse (RETRIEVER_HYBRID=1): BM25/SPLADE sparse vectors.
+fastembed>=0.3
+# Cross-encoder reranker (RERANKER_MODEL, e.g. BAAI/bge-reranker-v2-m3).
+# Pulls torch; large. Set RERANKER_MODEL="" to disable.
+sentence-transformers>=3.0
 
 # --- OCR (tables & images) ---
 paddleocr>=2.7

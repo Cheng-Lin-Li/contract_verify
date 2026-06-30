@@ -23,7 +23,7 @@ from typing import Optional
 
 from app.audit.audit_log import AuditLog
 from app.config import Settings, get_settings
-from app.core.enums import DocRole, Layer
+from app.core.enums import DocRole
 from app.core.models import CIRDocument, ReferenceItem, VerificationResult
 from app.ingestion.ingest_service import IngestService
 from app.llm.base import LLMProvider
@@ -84,6 +84,7 @@ class VerificationPipeline:
         settings: Optional[Settings] = None,
         audit: Optional[AuditLog] = None,
         blob_store: Optional[BlobStore] = None,
+        locale: Optional[str] = None,
     ) -> None:
         """Initialise the pipeline.
 
@@ -93,14 +94,27 @@ class VerificationPipeline:
             audit: Audit log; defaults to one at ``settings.audit_log_path``.
             blob_store: Blob backend for raw uploads; defaults to the configured
                 one (local filesystem, or S3/MinIO when ``BLOB_DIR`` is ``s3://``).
+            locale: Prompt-catalog locale for extraction/verification (e.g.
+                ``ja``); defaults to the configured ``DEFAULT_LOCALE``.
         """
         self.settings = settings or get_settings()
         self.provider = provider or get_provider(self.settings)
         self.audit = audit or AuditLog(self.settings.audit_log_path)
         self.blobs = blob_store or get_blob_store(self.settings)
         self.ingest = IngestService()
-        self.extractor = RequirementExtractor(self.provider)
-        self.matcher = VerificationMatcher(self.provider)
+        # When no locale is forced, run() may auto-detect it from the document.
+        self._explicit_locale = locale
+        self.locale = locale or self.settings.default_locale
+        self.extractor = RequirementExtractor(self.provider, locale=self.locale)
+        self.matcher = VerificationMatcher(self.provider, locale=self.locale)
+
+    def _set_locale(self, locale: str) -> None:
+        """Switch the extractor/matcher prompt catalogs to ``locale``."""
+        from app.prompts.loader import load_catalog
+        self.locale = locale
+        catalog = load_catalog(locale)
+        self.extractor.catalog = catalog
+        self.matcher.catalog = catalog
 
     def _persist_blob(self, doc_id: str, path: str | Path) -> str:
         """Store a source document's raw bytes in the blob store.
@@ -185,6 +199,22 @@ class VerificationPipeline:
         # lets the later source win — supersedes correctly regardless of the
         # order files were supplied/globbed.
         deal_docs.sort(key=_deal_doc_recency_key)
+
+        # Auto-select the prompt-catalog locale from the document language unless
+        # the caller forced one. Detect from the contract (always present),
+        # falling back to the deal sources if its text layer is sparse.
+        if self._explicit_locale is None and self.settings.auto_detect_locale:
+            from app.i18n.lang_detect import detect_locale
+            sample = contract.full_text() or "\n".join(d.full_text() for d in deal_docs)
+            detected = detect_locale(
+                sample, supported=self.settings.supported_locale_list(),
+                default=self.settings.default_locale)
+            if detected != self.locale:
+                self._set_locale(detected)
+            log.info("locale_detected", extra={"doc_id": contract.doc_id,
+                                               "locale": detected})
+            self.audit.record("locale_detected", doc_id=contract.doc_id,
+                              details={"locale": detected})
 
         playbook_items = (
             preloaded_playbook if preloaded_playbook is not None

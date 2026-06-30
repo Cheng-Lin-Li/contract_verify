@@ -104,19 +104,26 @@ def parse_catalog(text: str, locale: str = "en") -> PromptCatalog:
     return PromptCatalog(prompts, locale)
 
 
-@lru_cache(maxsize=4)
+@lru_cache(maxsize=8)
 def load_catalog(locale: Optional[str] = None) -> PromptCatalog:
     """Load and cache the prompt catalog for ``locale`` (default: configured).
+
+    If the requested locale has no catalog on disk, fall back to the deployment
+    default locale so an unsupported ``locale`` selection degrades gracefully
+    (English prompts) rather than failing the run.
 
     Args:
         locale: Locale tag; falls back to ``DEFAULT_LOCALE`` from settings.
 
     Raises:
-        FileNotFoundError: If the catalog file does not exist.
+        FileNotFoundError: If neither the requested nor the default catalog exists.
     """
     settings = get_settings()
     locale = locale or settings.default_locale
     path = Path(settings.prompts_dir) / locale / "PROMPTS.md"
+    if not path.exists() and locale != settings.default_locale:
+        path = Path(settings.prompts_dir) / settings.default_locale / "PROMPTS.md"
+        locale = settings.default_locale
     if not path.exists():
         raise FileNotFoundError(f"Prompt catalog not found: {path}")
     return parse_catalog(path.read_text(encoding="utf-8"), locale)

@@ -1,5 +1,7 @@
 # contract_verify
 
+[![CI](https://github.com/Cheng-Lin-Li/contract_verify/actions/workflows/ci.yml/badge.svg)](https://github.com/Cheng-Lin-Li/contract_verify/actions/workflows/ci.yml)
+
 **Requirements coverage for business contracts — three-layer verification, deployable on-premises, in the cloud, or hybrid.**
 
 `contract_verify` checks every contract against **three reference layers at once** and tells a business stakeholder — not a lawyer — whether the final document actually captured what the deal needed:
@@ -10,7 +12,7 @@
 
 Every result — *Covered*, *Compliant*, *Missing*, *Violation* — cites the reference item **and** the matching (or missing) contract clause. Low-confidence and high-risk items are routed to a supervising attorney. The system runs **on-premises (air-gap capable), in a cloud tenant, or as a hybrid** that keeps sensitive documents and the audit trail on-prem while using cloud compute — the difference is configuration, not code.
 
-> This repository is the **0.9.0 MVP**: the three-layer verification core on a CLI. See [`docs/TDD.md`](docs/TDD.md) for the architecture and [`docs/PRD.md`](docs/PRD.md) for the product framing, including the 3-month productionization plan and the rationale behind every technology choice.
+> This repository is **1.0.0**: the three-layer verification core (CLI + React SPA + FastAPI) plus the 3-month productionization backend — Postgres state, Qdrant retrieval, PaddleOCR, RBAC, the attorney queue with SLA, server-side i18n, and background jobs. Backing services start with `docker compose up -d`. See [`docs/TDD.md`](docs/TDD.md) for the architecture and [`docs/PRD.md`](docs/PRD.md) for the product framing and the rationale behind every technology choice.
 
 ---
 

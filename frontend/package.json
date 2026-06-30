@@ -1,7 +1,7 @@
 {
   "name": "contract-verify-frontend",
   "private": true,
-  "version": "0.9.0",
+  "version": "1.0.0",
   "type": "module",
   "description": "React UI for contract_verify (upload, report, attorney queue) — EN/JA.",
   "scripts": {
@@ -31,7 +31,7 @@
     "postcss": "^8.4.38",
     "tailwindcss": "^3.4.4",
     "typescript": "^5.4.5",
-    "vite": "^8.0.16",
+    "vite": "^7.0.0",
     "vitest": "^4.1.9"
   }
 }

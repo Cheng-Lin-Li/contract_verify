@@ -18,7 +18,7 @@ def _reload():
 
 def test_defaults_present():
     s = _reload()
-    assert s.app_version == "0.9.0"
+    assert s.app_version == "1.0.0"
     assert s.ocr_engine  # has a default
     assert 0.0 < s.cs_human_review_threshold < s.cs_auto_confirm_threshold <= 1.0
 

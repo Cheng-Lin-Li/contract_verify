@@ -1,0 +1,46 @@
+{
+  "layer": {
+    "1": "ビジネス要件",
+    "2": "社内プレイブック",
+    "3": "標準条項"
+  },
+  "status": {
+    "Covered": "充足",
+    "Partial": "部分的充足",
+    "Missing": "欠落",
+    "Contradicted": "矛盾",
+    "Superseded": "失効",
+    "Compliant": "準拠",
+    "Deviation": "逸脱",
+    "Violation": "違反",
+    "Present": "あり",
+    "Non-standard": "非標準"
+  },
+  "score": {
+    "coverage": "カバレッジスコア",
+    "risk": "リスクスコア",
+    "playbook": "プレイブック準拠率",
+    "standard": "標準条項の充足率",
+    "confidence": "信頼度スコア"
+  },
+  "gate": {
+    "auto_confirm": "自動承認",
+    "blocked": "弁護士レビュー待ちのため保留",
+    "critical_missing": "重要要件 {item} が{status}です",
+    "violation": "{item} でプレイブック違反",
+    "core_missing": "コア標準保護条項 {item}（{type}）が欠落しています",
+    "low_confidence": "{item} の信頼度が低い（{confidence}）",
+    "risk_over_threshold": "リスクスコア {risk} が弁護士レビュー閾値 {threshold} 以上です"
+  },
+  "queue": {
+    "sla_ok": "順調",
+    "sla_warn": "期限間近",
+    "sla_breach": "期限超過",
+    "assigned_to": "{user} に割り当て済み"
+  },
+  "error": {
+    "unauthorized": "認証が必要です",
+    "forbidden": "この操作を行う権限がありません",
+    "not_found": "{resource} が見つかりません"
+  }
+}

@@ -118,6 +118,9 @@ def extract(file_path: str) -> None:
 @click.option("--playbook", "playbook_dir", required=True, type=click.Path(exists=True))
 @click.option("--stdterms", "stdterms_dir", required=True, type=click.Path(exists=True))
 @click.option("--contract-type", default=None)
+@click.option("--locale", default=None,
+              help="Prompt-catalog locale for extraction/verification (e.g. ja). "
+                   "Defaults to DEFAULT_LOCALE.")
 @click.option("--out", "out_path", default=None,
               help="Write the HTML report to this path. The JSON report is written alongside it "
                    "(same name, .json) unless --json-out is given.")
@@ -128,6 +131,7 @@ def pipeline(
     playbook_dir: str,
     stdterms_dir: str,
     contract_type: str | None,
+    locale: str | None,
     out_path: str | None,
     json_path: str | None,
 ) -> None:
@@ -138,7 +142,7 @@ def pipeline(
     directory; with ``--out`` only, the JSON is written next to the HTML.
     """
     sources = [str(p) for p in sorted(Path(sources_dir).glob("*")) if p.is_file()]
-    result = VerificationPipeline().run(
+    result = VerificationPipeline(locale=locale).run(
         contract_path=contract_path,
         deal_source_paths=sources,
         playbook_dir=playbook_dir,

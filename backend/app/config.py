@@ -51,6 +51,14 @@ def _env_int(key: str, default: int) -> int:
         return default
 
 
+def _env_bool(key: str, default: bool) -> bool:
+    """Return a boolean environment variable (``1/true/yes/on``), else ``default``."""
+    val = os.environ.get(key)
+    if val in (None, ""):
+        return default
+    return val.strip().lower() in ("1", "true", "yes", "on")
+
+
 @dataclass
 class Settings:
     """Resolved runtime configuration for one process.
@@ -59,7 +67,7 @@ class Settings:
     with an empty environment (local Ollama, Tesseract OCR, English locale).
     """
 
-    app_version: str = field(default_factory=lambda: _env("APP_VERSION", "0.9.0"))
+    app_version: str = field(default_factory=lambda: _env("APP_VERSION", "1.0.0"))
 
     # --- Deployment model (on_prem | cloud | hybrid) ---
     # The product supports three deployment models. ``on_prem`` keeps every
@@ -87,6 +95,24 @@ class Settings:
     # --- OCR ---
     ocr_engine: str = field(default_factory=lambda: _env("OCR_ENGINE", "tesseract"))
 
+    # --- Retrieval -----------------------------------------------------------
+    # Default is the dense Qdrant retriever; `direct` is the dependency-free
+    # lexical fallback (used by the hermetic test suites and air-gapped installs
+    # with no vector service). Hybrid dense+sparse and a cross-encoder reranker
+    # layer on top when configured.
+    retriever: str = field(default_factory=lambda: _env("RETRIEVER", "qdrant"))
+    qdrant_url: str = field(default_factory=lambda: _env("QDRANT_URL", "http://localhost:6333"))
+    qdrant_collection: str = field(default_factory=lambda: _env("QDRANT_COLLECTION", "clauses"))
+    # Hybrid dense+sparse fusion (RRF). Needs a sparse encoder (fastembed).
+    retriever_hybrid: bool = field(default_factory=lambda: _env_bool("RETRIEVER_HYBRID", False))
+    sparse_model: str = field(
+        default_factory=lambda: _env("SPARSE_MODEL", "Qdrant/bm25"))
+    # Cross-encoder reranker over the fused candidates ("" disables it).
+    reranker_model: str = field(
+        default_factory=lambda: _env("RERANKER_MODEL", "BAAI/bge-reranker-v2-m3"))
+    # How many candidates to pull before reranking down to top_k.
+    rerank_candidates: int = field(default_factory=lambda: _env_int("RERANK_CANDIDATES", 20))
+
     # --- Storage (MVP: sqlite + filesystem) ---
     database_url: str = field(default_factory=lambda: _env("DATABASE_URL", "sqlite:///./contract_verify.db"))
     blob_dir: str = field(default_factory=lambda: _env("BLOB_DIR", "./var/blobs"))
@@ -110,10 +136,17 @@ class Settings:
     risk_attorney_threshold: int = field(
         default_factory=lambda: _env_int("RISK_ATTORNEY_THRESHOLD", 60)
     )
+    # SLA window (hours) for an attorney-queue item. One global window per
+    # deployment; the queue countdown (app/queue/sla.py) is computed against it.
+    queue_sla_hours: int = field(default_factory=lambda: _env_int("QUEUE_SLA_HOURS", 24))
 
     # --- Localization ---
     default_locale: str = field(default_factory=lambda: _env("DEFAULT_LOCALE", "en"))
     supported_locales: str = field(default_factory=lambda: _env("SUPPORTED_LOCALES", "en"))
+    # When no locale is explicitly requested, detect the document's language and
+    # pick a supported prompt-catalog locale (falls back to DEFAULT_LOCALE).
+    auto_detect_locale: bool = field(
+        default_factory=lambda: _env_bool("AUTO_DETECT_LOCALE", True))
 
     # --- Prompts ---
     prompts_dir: str = field(default_factory=lambda: _env("PROMPTS_DIR", "backend/prompts"))
@@ -127,6 +160,9 @@ class Settings:
     cors_origins: str = field(
         default_factory=lambda: _env("CORS_ORIGINS", "http://localhost:5173")
     )
+    # Seed a sample verified contract + attorney-queue items on API startup so the
+    # demo SPA has data to show. Disable in production (SEED_DEMO_DATA=false).
+    seed_demo_data: bool = field(default_factory=lambda: _env_bool("SEED_DEMO_DATA", True))
     # Where the demo user store, generated reports, and uploads live.
     users_db_path: str = field(default_factory=lambda: _env("USERS_DB_PATH", "./var/users.json"))
     reports_dir: str = field(default_factory=lambda: _env("REPORTS_DIR", "./var/reports"))

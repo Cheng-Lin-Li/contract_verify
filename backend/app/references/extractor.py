@@ -38,15 +38,18 @@ def _coerce_priority(value: str) -> Priority:
 class RequirementExtractor:
     """Extracts Layer-1 requirements from deal-source documents."""
 
-    def __init__(self, provider: LLMProvider, catalog: Optional[PromptCatalog] = None) -> None:
+    def __init__(self, provider: LLMProvider, catalog: Optional[PromptCatalog] = None,
+                 locale: Optional[str] = None) -> None:
         """Initialise with an LLM provider and a prompt catalog.
 
         Args:
             provider: The :class:`LLMProvider` to call.
-            catalog: Prompt catalog; defaults to the configured locale's catalog.
+            catalog: Prompt catalog; defaults to the ``locale`` catalog.
+            locale: Prompt-catalog locale (e.g. ``ja``); defaults to the
+                configured ``DEFAULT_LOCALE``. Ignored when ``catalog`` is given.
         """
         self.provider = provider
-        self.catalog = catalog or load_catalog()
+        self.catalog = catalog or load_catalog(locale)
 
     def extract(self, doc: CIRDocument, start_index: int = 0) -> list[ReferenceItem]:
         """Extract requirements from a single deal-source document.
@@ -115,9 +118,10 @@ class LibraryExtractor:
     loader can ingest them on the next verification run.
     """
 
-    def __init__(self, provider: LLMProvider, catalog: Optional[PromptCatalog] = None) -> None:
+    def __init__(self, provider: LLMProvider, catalog: Optional[PromptCatalog] = None,
+                 locale: Optional[str] = None) -> None:
         self.provider = provider
-        self.catalog = catalog or load_catalog()
+        self.catalog = catalog or load_catalog(locale)
 
     # ------------------------------------------------------------------
     # Internal helpers
