@@ -95,10 +95,23 @@ class Settings:
     # --- OCR ---
     ocr_engine: str = field(default_factory=lambda: _env("OCR_ENGINE", "tesseract"))
 
-    # --- Retrieval (3-month: Qdrant dense+sparse; MVP: lexical DirectRetriever) ---
-    retriever: str = field(default_factory=lambda: _env("RETRIEVER", "direct"))
+    # --- Retrieval -----------------------------------------------------------
+    # Default is the dense Qdrant retriever; `direct` is the dependency-free
+    # lexical fallback (used by the hermetic test suites and air-gapped installs
+    # with no vector service). Hybrid dense+sparse and a cross-encoder reranker
+    # layer on top when configured.
+    retriever: str = field(default_factory=lambda: _env("RETRIEVER", "qdrant"))
     qdrant_url: str = field(default_factory=lambda: _env("QDRANT_URL", "http://localhost:6333"))
     qdrant_collection: str = field(default_factory=lambda: _env("QDRANT_COLLECTION", "clauses"))
+    # Hybrid dense+sparse fusion (RRF). Needs a sparse encoder (fastembed).
+    retriever_hybrid: bool = field(default_factory=lambda: _env_bool("RETRIEVER_HYBRID", False))
+    sparse_model: str = field(
+        default_factory=lambda: _env("SPARSE_MODEL", "Qdrant/bm25"))
+    # Cross-encoder reranker over the fused candidates ("" disables it).
+    reranker_model: str = field(
+        default_factory=lambda: _env("RERANKER_MODEL", "BAAI/bge-reranker-v2-m3"))
+    # How many candidates to pull before reranking down to top_k.
+    rerank_candidates: int = field(default_factory=lambda: _env_int("RERANK_CANDIDATES", 20))
 
     # --- Storage (MVP: sqlite + filesystem) ---
     database_url: str = field(default_factory=lambda: _env("DATABASE_URL", "sqlite:///./contract_verify.db"))

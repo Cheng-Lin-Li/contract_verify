@@ -4,13 +4,13 @@
 
 | | |
 |---|---|
-| **Version** | 0.9.0 (MVP) |
-| **Status** | Design guideline |
+| **Version** | 1.0.0 |
+| **Status** | Design guideline · 3-month scope delivered |
 | **Architecture** | Three-layer verification engine |
 | **Deployment** | On-premises, cloud, or hybrid · data-residency configurable · air-gap capable |
 | **Classification** | Confidential |
 
-This document is the engineering design guideline for contract_verify. The product verifies every contract against three reference layers — (1) deal business requirements, (2) the company playbook, and (3) standard contract terms — in a single grounded pass. Delivery is split into a **2-day MVP** and a **3-month full project**; the sections below describe the 3-month target architecture, and each major technology choice is given with its rationale and the alternative considered.
+This document is the engineering design guideline for contract_verify. The product verifies every contract against three reference layers — (1) deal business requirements, (2) the company playbook, and (3) standard contract terms — in a single grounded pass. Delivery was split into a **2-day MVP** and a **3-month full project**, both now **delivered (v1.0.0)**; the sections below describe the architecture as built, and each major technology choice is given with its rationale and the alternative considered. Where the shipped implementation differs from the original plan (e.g. FastAPI BackgroundTasks instead of Celery/Redis), the text notes it.
 
 > **Deployment is a configuration, not a fork.** The same build runs on-premises, in a cloud tenant, or as a hybrid that keeps sensitive data on-prem while running compute or public-facing pieces in the cloud. See §19.
 
@@ -22,12 +22,12 @@ contract_verify is a modular, service-oriented system. In the MVP all services r
 
 ```
 UI / CLI        React frontend + Click CLI (function-test harness)
-API Gateway     FastAPI — auth, RBAC, privilege enforcement, routing
-Orchestration   Celery + Redis — pipeline stages as discrete tasks
-Verification    Ingest → Extract (3 layers) → Reconcile → Match → Score → Report
-Knowledge       Qdrant (vectors) + PostgreSQL (structured) + MinIO (blobs)
+API Gateway     FastAPI — JWT auth, RBAC, privilege enforcement, routing
+Orchestration   FastAPI BackgroundTasks — pipeline off the request thread (Celery+Redis: backlog)
+Verification    Ingest → Extract (3 layers) → Reconcile → Match → Score → Report → Route
+Knowledge       Qdrant (vectors) + PostgreSQL (structured) + MinIO/S3 (blobs)
 LLM Layer       Ollama (local, RTX 4070 Ti default) ↔ cloud via .env switch
-Audit Bus       Append-only PostgreSQL log with immutability trigger
+Audit Bus       Append-only PostgreSQL log with a BEFORE UPDATE/DELETE immutability trigger
 ```
 
 The three reference layers are not three separate products — they are three reference sets fed through one verification pipeline. Layer 1 (requirements) is extracted per-deal from uploaded sources; Layers 2 (playbook) and 3 (standard terms) are pre-loaded libraries retrieved at verification time.
@@ -43,13 +43,13 @@ There are two hard deadlines: a 2-day MVP that proves the three-layer thesis end
 | Capability | 2-Day MVP | 3-Month Project | Backlog (Phase 1+) |
 |---|---|---|---|
 | Three-layer verification | All three (core) | Hardened | — |
-| Interface | CLI only | **React SPA built** (upload, report, queue) + API skeleton/specs | Playbook builder UI, polish |
+| Interface | CLI only | **React SPA + FastAPI API built** (upload, report, queue, library) | Playbook builder UI, polish |
 | Ingestion | PDF/DOCX/email text-layer | + robust parsing, tables, tracked changes | — |
 | OCR | Optional (Tesseract, text-layer) | Tesseract + PaddleOCR/PP-Structure (tables & images) | PaddleOCR-VL (0.9B VLM), EasyOCR, cloud Vision |
 | LLM | Ollama or cloud via `.env` | Full provider adapter | OpenAI, Azure OpenAI |
 | Orchestration | In-process (sync) | FastAPI + BackgroundTasks | Celery + Redis at scale |
 | State / storage | SQLite + filesystem **+ S3/MinIO blob adapter** | Postgres + full storage interface (local or cloud) | — |
-| Retrieval | Direct-LLM match (small docs) | Qdrant dense vectors | Hybrid dense + sparse (BM25) |
+| Retrieval | Lexical match (small docs) | Qdrant dense (default) + optional hybrid dense+sparse (RRF) + cross-encoder reranker | Retrieval-accuracy eval harness |
 | Scoring | Coverage + Confidence | + Compliance, Completeness, Risk | — |
 | Reconciliation | Basic dedupe | Within-layer supersede / contradict | Cross-layer conflict |
 | Report | JSON + simple HTML, cited | + annotated views | DOCX tracked-changes redline |
@@ -57,11 +57,11 @@ There are two hard deadlines: a 2-day MVP that proves the three-layer thesis end
 | Access control | Single-user (none) | RBAC + manual privilege tagging | Auto-detect privilege |
 | Audit trail | Append-only JSONL / SQLite | Immutable Postgres trigger | — |
 | Deployment | On-prem/cloud/hybrid config + residency guardrail (CLI `doctor`) | Per-model Compose profiles + install guides | Managed cloud offering, customer-VPC blueprints |
-| Localization | English (JA-ready stack; JA = demo stretch) | **EN + JA built in the frontend** (i18next); JA OCR + JA prompts pending | Further languages + full UI-switch breadth |
+| Localization | English (JA-ready stack; JA = demo stretch) | **EN + JA built**: frontend (i18next) + server message catalogs + JA prompt catalog + document-language auto-detection + JA OCR (PaddleOCR) | Further languages + full UI-switch breadth |
 
 **2-Day MVP — minimal stack.** Python 3.11 single process · Click CLI · Ollama local LLM (or cloud via `.env`) · SQLite for state + append-only audit · local filesystem for blobs · pdfminer / python-docx / stdlib-email ingestion · direct-LLM matching over small documents (no vector cluster) · prompts in `prompts/en/PROMPTS.md` · structlog · `DEPLOYMENT_MODE` + per-component residency guardrail. Deliberately **not** in the 2-day MVP: FastAPI service, Celery/Redis, Qdrant, MinIO, React frontend, RBAC/auth, immutable DB triggers, OCR switching.
 
-> **Build status (this repo).** The 3-month **backend** is scaffolded as skeletons (every function defined with signature + docstring, raising `NotImplementedError`) under `app/api`, `app/core/security`, `app/models`, `app/knowledge`, `app/queue`, `app/services`, `app/storage/postgres` and the PaddleOCR engine, with 3-month deps in `backend/requirements-3month.txt`. **TDD specs** for these features live in `backend/tests/three_month/` (written first; skipped until implemented — `RUN_3MONTH=1 pytest`). The **frontend** (`frontend/`) is implemented: a React + TS + Tailwind SPA (upload, report, attorney queue) with EN/JA localization, against the API contract in `app/api/schemas.py`.
+> **Build status (this repo, v1.0.0).** The 3-month **backend is implemented**: the former skeletons under `app/api`, `app/core/security`, `app/knowledge`, `app/queue`, `app/services`, `app/storage/postgres` and the PaddleOCR engine now have working implementations, and the **TDD specs** in `backend/tests/three_month/` pass under `RUN_3MONTH=1` (the Postgres and Qdrant specs run against their live services — `docker compose up -d`). The **frontend** (`frontend/`) is a React + TS + Tailwind SPA (upload, report, attorney queue, library) with EN/JA localization, against the API contract in `app/api/schemas.py`. CI (GitHub Actions) runs ruff + the full pytest suite (incl. 3-month against Postgres + Qdrant service containers) + the frontend type-check/vitest on every push. Heavy/optional deps (PaddleOCR, the cross-encoder reranker, fastembed) install from `backend/requirements-3month.txt`.
 
 **Scope guardrail.** Every deferred item sits behind an interface that exists in the MVP (storage adapter, OCR adapter, LLM provider adapter, retrieval interface), so the 3-month work is swap-in, not refactor. The same interfaces are what let storage and LLM be local or cloud per deployment model.
 
@@ -88,8 +88,8 @@ There are two hard deadlines: a 2-day MVP that proves the three-layer thesis end
 |---|---|---|
 | API framework | FastAPI 0.111+ | Native async (verification is I/O-bound on LLM + DB), automatic OpenAPI docs, Pydantic validation mirroring our reference-item schemas. Alt: Django REST — heavier, sync-first. |
 | Validation | Pydantic v2 | Reference items are strongly typed; enforces schema at the API boundary and serializes LLM JSON safely. |
-| Task queue | Celery 5.3 + Redis 7 | Each pipeline stage is a retryable task with independent timeouts; LLM calls must not block the request thread. Alt: RQ (weaker), Temporal (heavy for single-host MVP). |
-| Auth / RBAC | FastAPI-Users + JWT | Privilege-aware access is a hard requirement; battle-tested auth without building it; JWT keeps the API stateless. |
+| Task queue | **FastAPI BackgroundTasks** (Celery+Redis = backlog) | Verification runs off the request thread in-process — sufficient for the single-host target. Celery 5.3 + Redis 7 is the swap-in for multi-worker async scale (backlog). Alt considered: RQ (weaker), Temporal (heavy). |
+| Auth / RBAC | **JWT (python-jose) + bcrypt** | Privilege-aware access is a hard requirement; stateless JWTs carry the role claim, explicit allow-lists enforce RBAC (`require_role`). A file-backed demo user store stands in for the Postgres user table. |
 
 ### 4.2 Data & Knowledge Stores
 
@@ -196,9 +196,14 @@ VerificationResult {
 
 ## 7. Knowledge Store & Retrieval
 
-- Qdrant collections carry payload fields `layer`, `type`, `contract_type`, `approved`, `jurisdiction` — so retrieval is scoped (e.g. only Layer-2 playbook items for this contract type).
-- Hybrid search: dense cosine (0.7) + BM25 sparse (0.3) — catches both semantic matches ("late-payment penalty" ≈ "interest on overdue amounts") and exact terms ("net-60").
-- Every retrieval result returns `ref_url` (`/docs/{doc_id}#block-{block_id}`) so the UI and attorney queue deep-link to the exact source passage.
+The retriever is selected via `RETRIEVER` and implements one interface (`Retriever`), so the matcher is unchanged across backends:
+
+- **`direct`** — a dependency-free lexical (Jaccard) retriever; the air-gap / hermetic-test fallback that needs no vector service.
+- **`qdrant`** (default) — dense cosine retrieval over Qdrant. Points carry payload fields `doc_id`, `layer`, `type`, `contract_type` for scoped retrieval (e.g. only this contract's clauses, or Layer-2 items for this contract type). The retriever self-indexes a contract's blocks on first query, so it is a drop-in for the lexical one.
+- **Hybrid** (`RETRIEVER_HYBRID=1`) — adds a BM25/SPLADE sparse vector (via `fastembed`) alongside the dense vector and fuses them server-side with Reciprocal Rank Fusion, recovering exact terms and numbers ("net-60") that pure dense misses.
+- **Reranker** (`RERANKER_MODEL`) — an optional cross-encoder (`bge-reranker-v2-m3`) reorders a wide candidate set down to `top_k` before the LLM judge, lifting precision. Wraps any base retriever (`RerankingRetriever`).
+
+Embeddings come from the same local Ollama runtime (`bge-m3`); every retrieved block keeps its `doc_id`/`block_id` so the report and attorney queue deep-link to the exact source passage. A retrieval-accuracy evaluation harness (recall@k, citation precision) is the recommended next step (backlog).
 
 ---
 
@@ -212,7 +217,7 @@ VerificationResult {
 
 **Recency-ordered supersession.** Deal sources are ordered by recency before reconciliation (undated sources first, then by the email `Date` header), so the later revision wins regardless of the order files were supplied or globbed.
 
-**Verification matching.** Each `ReferenceItem` is matched against the contract CIR via hybrid retrieval; the top candidate clauses go to the LLM verifier, which assigns the per-layer status, the matched clause ids, and a confidence score with cited evidence. A deterministic **value-grounding check** then runs on top: if a Layer-1 requirement reads *Covered* but the requirement and the matched clause state different same-kind values (a different liability cap, payment net-term, or SLA percentage), the status is downgraded to *Partial* with a cited note — turning "the topic is covered" into "covered, but a key number differs." Same-value matches are left untouched, and value absence in the clause is not treated as a conflict.
+**Verification matching.** Each `ReferenceItem` is matched against the contract CIR via the configured retriever (§7: dense Qdrant by default, optionally hybrid + reranked, or the lexical fallback); the top candidate clauses go to the LLM verifier, which assigns the per-layer status, the matched clause ids, and a confidence score with cited evidence. A deterministic **value-grounding check** then runs on top: if a Layer-1 requirement reads *Covered* but the requirement and the matched clause state different same-kind values (a different liability cap, payment net-term, or SLA percentage), the status is downgraded to *Partial* with a cited note — turning "the topic is covered" into "covered, but a key number differs." Same-value matches are left untouched, and value absence in the clause is not treated as a conflict.
 
 ---
 
@@ -265,7 +270,7 @@ Items route to the attorney queue when any trigger fires: a Critical requirement
 | Proposed redline | Annotated DOCX for missing/partial items |
 | Audit snapshot | Full event log to this point (includes deployment mode + residency) |
 
-Attorney actions: approve, approve-with-edits, request clarification, reject, escalate, or add to playbook (which embeds the new position into Qdrant and versions Layer 2). SLA countdown starts on queue entry, with reminder/escalation at 50% / 80% / breach.
+Attorney actions: approve, approve-with-edits, request clarification, reject, escalate, or add to playbook (the decision is recorded and audited; the re-embed/learning loop that versions Layer 2 in Qdrant is backlog §20). Each decision is written to the immutable audit log. SLA countdown starts on queue entry against a configured window (`QUEUE_SLA_HOURS`), with reminders at 50% / 80% / breach (`app/queue/sla.py`).
 
 ---
 
@@ -337,7 +342,7 @@ EMBEDDING_MODEL=bge-m3
 
 ## 15. Repository Structure
 
-The skeleton carries internationalization seams (marked `[i18n]`). English + Japanese localization is delivered in the 3-month build (§18); the seams keep further languages additive. They are empty placeholders in the 2-day MVP.
+Internationalization is delivered (§18): server message catalogs in `backend/locales/<lang>.json`, per-language LLM prompt catalogs in `backend/prompts/<lang>/PROMPTS.md` (en, ja), and `app/i18n/lang_detect.py` for document-language auto-detection. The seams keep further languages additive.
 
 ```
 contract_verify/
@@ -403,13 +408,14 @@ LOG_BACKUP_COUNT=5
 
 ## 18. Internationalization & Localization (English + Japanese)
 
-The 2-day MVP ships English, with Japanese as an optional demo stretch (the matching stack is already multilingual). **English + Japanese is firmly in the 3-month scope** — UI language switch, Japanese OCR, Japanese prompt catalog, and validation. Further languages and broader UI-switch coverage are backlog.
+**English + Japanese is implemented.** The frontend UI switches via i18next; the backend resolves API/report strings from `backend/locales/{en,ja}.json`; the LLM prompts have a full Japanese catalog (`backend/prompts/ja/PROMPTS.md`, structurally parity-checked against `en`); and the pipeline auto-detects the document language (`detect_locale`) to pick the prompt-catalog locale when one isn't passed explicitly (CLI `--locale`, API `?locale=`). Japanese OCR runs via PaddleOCR (`jpn`→`japan` mapping). Further languages and broader UI-switch coverage are backlog.
 
-**Why EN + JA is low-risk:** multilingual models already chosen (bge-m3, Qwen3, and the Claude cloud option); Japanese OCR via PaddleOCR/PP-Structure (already in 3-month scope); externalized prompts and UI strings so adding `ja` is additive. Japanese specifics: no-whitespace segmentation, full/half-width NFKC normalization, vertical-text OCR edge cases, per-source language detection, cross-language matching via bge-m3, and locale formatting (年月日, ¥).
+**Why EN + JA was low-risk:** multilingual models already chosen (bge-m3, Qwen3, and the Claude cloud option); Japanese OCR via PaddleOCR/PP-Structure; externalized prompts and UI strings so adding `ja` is additive. Japanese specifics handled/considered: no-whitespace segmentation, full/half-width NFKC normalization, vertical-text OCR edge cases, document-language detection, cross-language matching via bge-m3, and locale formatting (年月日, ¥).
 
 ```
 DEFAULT_LOCALE=en
-SUPPORTED_LOCALES=en            # 3-month: en,ja  (further languages: backlog)
+SUPPORTED_LOCALES=en,ja          # further languages: backlog
+AUTO_DETECT_LOCALE=true          # detect document language to pick the prompt locale
 ```
 
 ---
@@ -534,7 +540,7 @@ Each backlog item improves scale, breadth, accuracy, or polish on top of a worki
 ## Appendix A — Key `.env` Reference
 
 ```
-APP_VERSION=0.9.0
+APP_VERSION=1.0.0
 DEPLOYMENT_MODE=on_prem         # on_prem | cloud | hybrid
 
 DATABASE_URL=sqlite:///./contract_verify.db   # local; or postgresql://host/db (cloud)
@@ -546,23 +552,32 @@ BLOB_DIR=./var/blobs                          # local path; or s3://bucket/prefi
 # S3_REGION=us-east-1
 AUDIT_LOG_PATH=./var/audit.jsonl              # local path; or s3://bucket/... (cloud)
 
-OCR_ENGINE=tesseract            # MVP:tesseract | 3-mo:paddleocr | backlog:paddleocr_vl,easyocr,google_vision
-LLM_PROVIDER=ollama             # ollama | anthropic | openai | azure_openai
+OCR_ENGINE=tesseract            # tesseract | paddleocr | backlog:paddleocr_vl,easyocr,google_vision
+LLM_PROVIDER=ollama             # ollama | anthropic | fake (openai/azure: backlog)
 LLM_EXTRACTION_MODEL=qwen3:14b
 EMBEDDING_MODEL=bge-m3
+
+# Retrieval (qdrant default; direct = lexical fallback for air-gap/hermetic tests):
+RETRIEVER=qdrant                # qdrant | direct
+QDRANT_URL=http://localhost:6333
+RETRIEVER_HYBRID=0              # 1 = dense+sparse RRF fusion (needs fastembed)
+RERANKER_MODEL=BAAI/bge-reranker-v2-m3   # cross-encoder rerank; "" disables (skips torch)
 
 CS_HUMAN_REVIEW_THRESHOLD=0.70
 CS_AUTO_CONFIRM_THRESHOLD=0.85
 RISK_ATTORNEY_THRESHOLD=60
+QUEUE_SLA_HOURS=24
 
 DEFAULT_LOCALE=en
-SUPPORTED_LOCALES=en            # 3-month: en,ja
+SUPPORTED_LOCALES=en,ja
+AUTO_DETECT_LOCALE=true
 
 LOG_LEVEL=INFO
 LOG_FILE=/var/log/contract_verify/app.log
 LOG_FORMAT=json
 
 SECRET_KEY=<openssl rand -hex 32>
+SEED_DEMO_DATA=true             # sample contract + queue on API startup; false in prod
 ```
 
 All prompts live in `backend/prompts/en/PROMPTS.md` (per-language catalogs in the 3-month build); no prompt text or tunable constant is hardcoded in source.
@@ -578,13 +593,16 @@ All prompts live in `backend/prompts/en/PROMPTS.md` (per-language catalogs in th
 | Ingestion | `app/ingestion/ingest_service.py` |
 | Extraction & reconcile | `app/references/` (`extractor.py`, `reconcile.py`) |
 | Contract entities + value-conflict grounding | `app/references/entities.py` (`extract_contract_entities`, `value_conflict`) |
-| Matching & retrieval | `app/verify/matcher.py`, `app/retrieval/retriever.py` |
+| Matching | `app/verify/matcher.py` |
+| Retrieval (lexical / Qdrant / hybrid / rerank) | `app/retrieval/retriever.py` (`get_retriever`), `app/knowledge/qdrant_store.py`, `app/knowledge/reranker.py`, `app/knowledge/embeddings.py` |
 | Scoring & gate | `app/scoring/` |
 | Report & audit | `app/report/report_builder.py`, `app/audit/audit_log.py` |
+| Persistence (Postgres + immutable audit) | `app/storage/postgres.py` |
 | Storage adapters (local/cloud seam) | `app/storage/store.py` — `BlobStore`/`LocalBlobStore`/`S3BlobStore`, `get_blob_store`, `parse_s3_url` |
+| API · auth/RBAC · attorney queue · jobs | `app/api/`, `app/core/security.py`, `app/queue/` (`routing`, `sla`, `attorney_queue`), `app/services/jobs.py` |
+| i18n (catalogs + language detection) | `app/i18n/catalog.py`, `app/i18n/lang_detect.py`, `backend/locales/`, `backend/prompts/{en,ja}/PROMPTS.md` |
 | LLM providers | `app/llm/` (`ollama`, `anthropic`, `fake`) |
 | Orchestration | `app/pipeline.py` |
-| Prompts | `backend/prompts/en/PROMPTS.md` |
-| Tests | `backend/tests/` + `run_tests.py` |
+| Tests & CI | `backend/tests/` + `run_tests.py`; `backend/tests/three_month/` (`RUN_3MONTH=1`); `.github/workflows/ci.yml` |
 
 *Baseline values (coverage credits, priority weights, confidence thresholds, risk threshold) are configurable per customer deployment. Not legal advice — high-risk gaps require supervising-attorney sign-off.*

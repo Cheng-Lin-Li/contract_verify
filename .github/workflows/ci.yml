@@ -38,6 +38,10 @@ jobs:
     env:
       # Tests never call a real model; the deterministic provider keeps CI hermetic.
       LLM_PROVIDER: fake
+      # Pipeline-driven tests use the lexical retriever (no embeddings runtime in
+      # CI); the Qdrant retrieval spec constructs its retriever explicitly and
+      # runs against the qdrant service container regardless of this.
+      RETRIEVER: direct
       # Point the integration specs at the service containers.
       PG_TEST_DSN: postgresql+asyncpg://cv:cv@localhost:5432/cv_test
       QDRANT_URL: http://localhost:6333

@@ -39,6 +39,7 @@ def _bootstrap() -> None:
     if str(BACKEND) not in sys.path:
         sys.path.insert(0, str(BACKEND))
     os.environ.setdefault("LLM_PROVIDER", "fake")
+    os.environ.setdefault("RETRIEVER", "direct")  # hermetic: no vector service needed
     os.environ.setdefault("LOG_LEVEL", "ERROR")  # keep test output readable
 
 

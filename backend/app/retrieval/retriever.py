@@ -79,12 +79,23 @@ def get_retriever(settings: object | None = None) -> Retriever:
     if settings is None:
         from app.config import get_settings
         settings = get_settings()
-    if getattr(settings, "retriever", "direct").lower() == "qdrant":
-        from app.knowledge.embeddings import get_embedder
-        from app.knowledge.qdrant_store import QdrantRetriever
-        return QdrantRetriever(
-            url=getattr(settings, "qdrant_url", "http://localhost:6333"),
-            embedder=get_embedder(settings),
-            collection=getattr(settings, "qdrant_collection", "clauses"),
-        )
-    return DirectRetriever()
+    if getattr(settings, "retriever", "qdrant").lower() != "qdrant":
+        # `direct` (and any non-qdrant value): dependency-free lexical retriever.
+        return DirectRetriever()
+
+    from app.knowledge.embeddings import get_embedder
+    from app.knowledge.qdrant_store import QdrantRetriever
+    base: Retriever = QdrantRetriever(
+        url=getattr(settings, "qdrant_url", "http://localhost:6333"),
+        embedder=get_embedder(settings),
+        collection=getattr(settings, "qdrant_collection", "clauses"),
+        hybrid=getattr(settings, "retriever_hybrid", False),
+        sparse_model=getattr(settings, "sparse_model", "Qdrant/bm25"),
+    )
+    # Optional cross-encoder reranker on top of the dense/hybrid candidates.
+    from app.knowledge.reranker import RerankingRetriever, get_reranker
+    reranker = get_reranker(settings)
+    if reranker is not None:
+        return RerankingRetriever(
+            base, reranker, candidates=getattr(settings, "rerank_candidates", 20))
+    return base
